@@ -10,7 +10,7 @@ import static CollectionCLI.Instruments.*;
 
 public class Main {
     public static void main(String[] args) {
-        CollectionHandler ch = new CollectionHandler();
+       /* CollectionHandler ch = new CollectionHandler();
         ShutdownHook shutdownHook = new ShutdownHook(ch);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
         try {
@@ -174,6 +174,6 @@ class ShutdownHook extends Thread{
         ch.save();}
         catch (NullPointerException e){
             System.out.println("No file");
-        }
+        }*/
     }
 }

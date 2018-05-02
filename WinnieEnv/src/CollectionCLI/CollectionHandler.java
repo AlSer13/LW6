@@ -16,6 +16,7 @@ import static CollectionCLI.Instruments.extractFilePath;
  */
 
 public class CollectionHandler {
+    public static final Set<String> objComms = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("add", "remove", "insert", "remove_all", "add_if_min", "remove_greater", "add_if_max", "remove_lower")));
     public Stack<Event> Events = new Stack<>();
     public File file;
     boolean order = true;
@@ -27,24 +28,25 @@ public class CollectionHandler {
     /**
      * Constructor sets the date of initialization
      */
-    public CollectionHandler(){
+    public CollectionHandler() {
         initDate = GregorianCalendar.getInstance();
     }
 
     /**
      * The method reloads collection Events from the file
-     *
      */
-    public void load() throws IOException {
+    public String load() throws IOException {
         Events.clear();
         this.Import(file);
+        return "Collection loaded";
     }
 
     /**
      * A method to read new collection from a
+     *
      * @param file, a parameter for the file from where to import
      */
-    public void Import(File file) throws IOException {
+    public String Import(File file) throws IOException {
         FileReader fr = new FileReader(file);
         scan = new Scanner(fr);
         StringBuilder sb = new StringBuilder();
@@ -55,106 +57,127 @@ public class CollectionHandler {
         Events = gson.fromJson(json, new TypeToken<Stack<Event>>() {
         }.getType());
         fr.close();
+        return "Collection imported";
     }
 
     /**
      * Override the Import method to access the file via
+     *
      * @param path parameter
      */
-    public void Import(String path) throws IOException{
+    public String Import(String path) throws IOException {
         File file = new File(extractFilePath(path), extractFileName(path));
         Import(file);
+        return "Collection imported";
     }
 
     /**
      * Removes all object equal to the parameter
-     * @param e,  given object
+     *
+     * @param e, given object
      */
-    public void removeAll(Event e) {
-        for (Event event : Events) {
-            if (event.equals(e))
-                Events.remove(event);
-        }
+    public String removeAll(Event e) {
+        Events.removeIf(p -> p.equals(e));
+        return ("All equal to " + e.name + "remove");
     }
 
     /**
      * reorders the Collection in a reverse order
      */
-    public void reorder(){
-        if(order){
-        Events.sort(Comparator.reverseOrder());
-        order = false;
+    public String reorder() {
+        if (order) {
+            Events.sort(Comparator.reverseOrder());
+            order = false;
         } else {
             Events.sort(Comparator.naturalOrder());
             order = true;
         }
+        return "Collection reordered";
     }
 
     /**
      * Pops from the Stack
      */
-    public void removeLast(){
+    public String removeLast() {
         if (!Events.isEmpty()) {
             Events.pop();
-        } else System.out.println("Collection is empty");
+            return "Last element removed";
+        } else return ("Collection is empty");
     }
 
     /**
      * Removes the element with zero index
      */
-    public void removeFirst(){
+    public String removeFirst() {
         if (!Events.isEmpty()) {
             Events.removeElementAt(0);
-        } else System.out.println("Collection is empty");
+            return ("First element removed");
+        } else return ("Collection is empty");
     }
 
     /**
      * removes an element at i index
+     *
      * @param i index
      */
-    public void remove(int i){
+    public String remove(int i) {
         if (!Events.isEmpty()) {
             Events.removeElementAt(i);
-        } else System.out.println("Collection is empty");
+            return ("Removed element at " + i);
+        } else return ("Collection is empty");
     }
 
     /**
      * Removes an element by it's value
+     *
      * @param e Example event
      */
-    public void remove(Event e){
-        if (!Events.removeIf(a -> a.compareTo(e) == 0)){
-            System.out.println("No such element");
-        }
+    public String remove(Event e) {
+        if (!Events.removeIf(a -> a.compareTo(e) == 0)) {
+            return ("No such element");
+        } else
+            return ("Element removed");
+    }
+
+    public String sort(){
+        Events.sort(Comparator.naturalOrder());
+        return (order ? "Natural order" : "Reverse order");
     }
 
     /**
      * Removes elements that are greater than e
+     *
      * @param e the first comparable
      */
-    public void removeGreater(Event e){
-        Events.removeIf(a -> a.compareTo(e) < 0);
+    public String removeGreater(Event e) {
+        if (Events.removeIf(a -> a.compareTo(e) < 0)) {
+            return "Removed successfully";
+        } else return "No such element";
     }
 
     /**
      * Removes elements that are less than e
+     *
      * @param e the first comparable
      */
-    public void removeLower(Event e){
-        Events.removeIf(a -> a.compareTo(e) > 0);
+    public String removeLower(Event e) {
+        if (Events.removeIf(a -> a.compareTo(e) > 0)) {
+            return "Removed successfully";
+        } else return "No such element";
     }
 
     /**
      * Saves the collection to a file of it's CollectionHandler
      */
-    public void save(){
+    public String save() {
         try {
             PrintWriter pw = new PrintWriter(file);
             String read = gson.toJson(Events);
             pw.print(read);
             pw.close();
+            return ("Collection saved");
         } catch (FileNotFoundException e) {
-            System.out.println(e.getMessage());
+            return (e.getMessage());
         }
 
 
@@ -163,92 +186,98 @@ public class CollectionHandler {
     /**
      * provides basic information about the collection
      */
-    public void info(){
-        System.out.println("Class: " + Events.getClass().getName());
-        System.out.println("Initialized: " + initDate.getTime().toString());
-        System.out.println("Capacity: " + Events.capacity());
-        System.out.println("Size: " + Events.size());
+    public String info() {
+        return ("Class: " + Events.getClass().getName() + "\n" +
+        "Initialized: " + initDate.getTime().toString() + "\n" +
+        "Capacity: " + Events.capacity() + "\n" +
+        "Size: " + Events.size());
 
-    } //remake
+    }
 
     /**
      * prints all elements of the Collection to StdOut
      */
-    public void contents(){
+    public String contents() {
         if (!Events.isEmpty()) {
-            for (Event event : Events) {
-                if (event.name != null) {
-                    System.out.println(event.name);
-                } else {
-                    System.out.println("null");
-                }
-            }
-        } else System.out.println("Collection is empty");
+            StringBuilder s = new StringBuilder();
+            Events.forEach((e)->{if (e.name!=null) s.append(e.name).append("\n"); });
+            return s.toString();
+        } else return("Collection is empty");
     }
 
     /**
      * adds to the collection if it's greater than the maximum element
+     *
      * @param e an Event to push
      */
-    public void addIfMax(Event e){
+    public String addIfMax(Event e) {
         boolean b = true;
-        for (Event event : Events){
-            if (e.compareTo(event)<0){
-                b=false;
+        for (Event event : Events) {
+            if (e.compareTo(event) < 0) {
+                b = false;
             }
         }
-        if (b){
+        if (b) {
             Events.push(e);
-        }
+            return "Добавлено";
+        } else return "Не добавено";
 
     }
 
     /**
      * adds e to the collection if it's less than the element
+     *
      * @param e an Event to push
      */
-    public void addIfMin(Event e){
+    public String addIfMin(Event e) {
         boolean b = true;
-        for (Event event : Events){
-            if (e.compareTo(event)>0){
-                b=false;
+        for (Event event : Events) {
+            if (e.compareTo(event) > 0) {
+                b = false;
             }
         }
-        if (b){
+        if (b) {
             Events.push(e);
-        }
+            return "Добавлено";
+        } else return "Не добавлено";
 
     }
 
     /**
      * pushes to the stack
+     *
      * @param e
      */
-    public void add(Event e){
+    public String add(Event e) {
         Events.push(e);
+        return "Element added";
     }
 
     /**
      * inserts an element e at the index i
-     * @param e element
+     *
      * @param i index
+     * @param e element
      */
-    public void insert(int i, Event e){
-        Events.insertElementAt(e,i);
+    public String insert(int i, Event e) {
+        Events.insertElementAt(e, i);
+        return "Element inserted";
     }
 
     /**
      * removes all the elements and sets the size to 0
      */
-    public void clear() {
+    public String clear() {
         Events.removeAllElements();
+        return "Cleared";
     }
 
     /**
      * finishes the execution of the program
      */
-    public void exit(){
+    public String exit() {
         save();
+        return ("Saved");
     }
 
 }

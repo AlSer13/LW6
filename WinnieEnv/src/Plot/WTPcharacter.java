@@ -1,6 +1,8 @@
 package Plot;
 
-public class WTPcharacter implements Moveable {
+import java.io.Serializable;
+
+public class WTPcharacter implements Moveable, Serializable {
     private String name;
     private Place location;
     //private Home home;

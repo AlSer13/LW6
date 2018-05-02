@@ -4,6 +4,9 @@ import Plot.Event;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -26,35 +29,32 @@ public class Instruments {
             return path;
     }
 
-    static Event FromJson(String s) {
+    public static Event FromJson(String s) {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
         return gson.fromJson(s, Event.class);
     }
 
-    private static String multilineJson(Scanner scn) {
+    public static String multilineJson(BufferedReader in) throws IOException{
         StringBuilder sb = new StringBuilder();
-        String first = scn.nextLine();
+        String first = in.readLine();
         sb.append(first);
             int countOpen = first.length() - first.replace("{", "").length();
             int countClose = first.length() - first.replace("}", "").length();
             int diff = countOpen-countClose;
             if (diff!=0) {
                 do {
-                    String string = scn.nextLine();
+                    String string = in.readLine();
                     countOpen = string.length() - string.replace("{", "").length();
                     countClose = string.length() - string.replace("}", "").length();
                     diff = diff + countOpen - countClose;
                     sb.append(string);
                 } while (diff > 0);
             }
-            System.out.println("finished entering command");
         return sb.toString();
     }
 
-    static ArrayList<String> parseCmd() throws WrongArgsException, StringIndexOutOfBoundsException{
-        Scanner scn = new Scanner(System.in);
-        String cmd = multilineJson(scn);
+    public static ArrayList<String> parseCmd(String cmd) throws WrongArgsException, StringIndexOutOfBoundsException{
         ArrayList<String> listArgs = new ArrayList<>();
         String text[] = cmd.split(" \\{",2);
         if (text.length>1) {

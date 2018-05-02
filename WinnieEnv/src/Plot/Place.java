@@ -1,6 +1,8 @@
 package Plot;
 
-public class Place {
+import java.io.Serializable;
+
+public class Place implements Serializable {
     public String name;
    // private List<Place> nearby = new ArrayList<>();
    // public Nameplate nameplate;

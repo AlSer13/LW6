@@ -1,17 +1,15 @@
 package Plot;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.io.Serializable;
+import java.util.*;
 
-public class Event implements Comparable<Event> {
-    private List<WTPcharacter> Participants = new ArrayList<>();
-    public GregorianCalendar date;
+public class Event implements Comparable<Event>, Serializable {
+    private ArrayList<WTPcharacter> Participants = new ArrayList<>();
+    transient public GregorianCalendar date;
     public Place place;
     public String name;
 
-    public Event(String name, Place place, GregorianCalendar date, WTPcharacter... participants){
+    public Event(String name, Place place, GregorianCalendar date, WTPcharacter... participants) {
         this.name = name;
         this.place = place;
         this.date = date;
@@ -22,13 +20,32 @@ public class Event implements Comparable<Event> {
         return Participants;
     }
 
-   /* public void addParticipant(WTPcharacter participant) throws TooBuisyException {
-        GregorianCalendar end = date;
-        end.add(Calendar.HOUR, 1);
-        if (participant.isFree(date, end)) {
-            this.Participants.add(participant);
-        } else throw new TooBuisyException();
-    }*/
+    /* public void addParticipant(WTPcharacter participant) throws TooBuisyException {
+         GregorianCalendar end = date;
+         end.add(Calendar.HOUR, 1);
+         if (participant.isFree(date, end)) {
+             this.Participants.add(participant);
+         } else throw new TooBuisyException();
+     }*/
+    public void go() throws NullPointerException {
+
+        if (Participants != null) {
+            Participants
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .forEachOrdered((p) -> {
+                        System.out.println(p.getName() + " is going to do "
+                                + this.name
+                                + "with ");
+                        Participants.stream()
+                                .filter(Objects::nonNull)
+                                .filter(p1 -> !p1.equals(p))
+                                .forEach(p1 -> System.out.println(p1.getName()));
+                        System.out.println((this.place == null || this.place.name == null) ? "nowhere" : "In" + this.place.name);
+                    });
+        } else System.out.println("Nobody's going to do " + this.name);
+        //to override
+    }
 
     public GregorianCalendar getDate() {
         return date;
@@ -36,7 +53,7 @@ public class Event implements Comparable<Event> {
 
     @Override
     public int compareTo(Event o) {
-        return date.compareTo(o.getDate());
+        return name.compareTo(o.name);
     }
 
     @Override
