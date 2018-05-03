@@ -1,19 +1,19 @@
 package Communication;
 
 import CollectionCLI.CollectionHandler;
+import Plot.Event;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
-
-import static CollectionCLI.Instruments.FromJson;
 
 class Protocol {
     CollectionHandler ch;
     Protocol(CollectionHandler ch){
         this.ch = ch;
     }
-    String processResponse(ArrayList<String> cmd) {
+
+    String processResponse(ArrayList<String> cmd, Event event) {
         String output = "";
         try {
             switch (cmd.get(0)) {
@@ -50,7 +50,7 @@ class Protocol {
                 }
                 break;
                 case "remove_all": {
-                    output = ch.removeAll(FromJson(cmd.get(1)));
+                    output = ch.removeAll(event);
                 }
                 break;
                 case "reorder": {
@@ -66,7 +66,7 @@ class Protocol {
                         int arg = Integer.parseInt(cmd.get(1));
                         output = ch.remove(arg);
                     } catch (NumberFormatException e) {
-                        output = ch.remove(FromJson(cmd.get(1))); //перегрузить
+                        output = ch.remove(event); //перегрузить
                     }
                 }
                 case "info": {
@@ -74,19 +74,19 @@ class Protocol {
                 }
                 break;
                 case "add_if_max": {
-                    output = ch.addIfMax(FromJson(cmd.get(1)));
+                    output = ch.addIfMax(event);
                 }
                 break;
                 case "remove_greater": {
-                    output = ch.removeGreater(FromJson(cmd.get(1)));
+                    output = ch.removeGreater(event);
                 }
                 break;
                 case "insert": {
-                    output = ch.insert(Integer.parseInt(cmd.get(1)), FromJson(cmd.get(2)));
+                    output = ch.insert(Integer.parseInt(cmd.get(1)), event); //!!!!!!
                 }
                 break;
                 case "add_if_min": {
-                    output = ch.addIfMin(FromJson(cmd.get(1)));
+                    output = ch.addIfMin(event);
                 }
                 break;
                 case "remove_first": {
@@ -94,7 +94,7 @@ class Protocol {
                 }
                 break;
                 case "remove_lower": {
-                    output = ch.removeLower(FromJson(cmd.get(1)));
+                    output = ch.removeLower(event);
                 }
                 break;
                 case "clear": {
@@ -102,7 +102,7 @@ class Protocol {
                 }
                 break;
                 case "add": {
-                    output = ch.add(FromJson(cmd.get(1)));
+                    output = ch.add(event);
                 }
                 break;
                 case "load": {
@@ -113,7 +113,7 @@ class Protocol {
                     output = ch.contents();
                 } break;
                 case "quit":
-                    output = "Quiting...";
+                    output = "Quitting...";
                     break;
                 case "null":
                     output = "";
@@ -127,8 +127,6 @@ class Protocol {
             output = (e.getMessage());
         } catch (IndexOutOfBoundsException | NumberFormatException e) {
             output = ("Wrong arguments");
-        } catch (com.google.gson.JsonSyntaxException e) {
-            output = ("Wrong Json format");
         } catch (SecurityException e) {
             output = ("Permission denied");
         } catch (NullPointerException e) {
@@ -139,7 +137,7 @@ class Protocol {
             output = ("Unknown error");
         } finally {
             if (output.equals("")) {
-                output = "Command applied";
+                output = "Command processed";
             }
         }
         return output;

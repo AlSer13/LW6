@@ -29,7 +29,7 @@ public class Instruments {
             return path;
     }
 
-    public static Event FromJson(String s) {
+    public static Event fromJson(String s) {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
         return gson.fromJson(s, Event.class);

@@ -1,5 +1,6 @@
 package Communication;
 
+import CollectionCLI.CollectionHandler;
 import CollectionCLI.Instruments;
 import Plot.Event;
 import com.jcraft.jsch.Channel;
@@ -12,8 +13,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-import static CollectionCLI.Instruments.multilineJson;
-import static CollectionCLI.Instruments.parseCmd;
+import static CollectionCLI.Instruments.*;
 
 public class AlternativeClient {
 
@@ -22,7 +22,7 @@ public class AlternativeClient {
     String host = "helios.cs.ifmo.ru";
     int port = 2222;
     int localPort = 0;
-    String pswd = "qoo724";
+    String pswd = "";
 
     public Receiving rt;
     public Sending st;
@@ -44,7 +44,7 @@ public class AlternativeClient {
                 System.out.println("Should be integer");
                 scan.next();
             }
-        } while (tc.localPort==0);
+        } while (tc.localPort == 0);
         tc.connect();
         tc.receiveMsgs();
         tc.sendMsgs();
@@ -58,6 +58,9 @@ public class AlternativeClient {
             JSch jSch = new JSch();
 
             Session session = jSch.getSession(username, host, port);
+            System.out.println("Enter pswd:");
+            Scanner scan = new Scanner(System.in);
+            pswd = scan.nextLine();
             session.setPassword(pswd);
             session.setConfig("StrictHostKeyChecking", "no");
             session.setConfig("PreferredAuthentications",
@@ -73,7 +76,23 @@ public class AlternativeClient {
 
             return true;
 
-        } catch (JSchException | IOException e) {
+        } catch (JSchException e) {
+            try {
+                System.out.print(i < 2 ? "\nFailed to connect to server " : "\n┻━┻ ︵ヽ(`Д´)ﾉ︵﻿ ┻━┻");
+                Thread.sleep(3000);
+                System.out.println("\nSending request again");
+                if (i == 10) System.exit(-1);
+                i++;
+
+                connect();
+
+            } catch (InterruptedException e1) {
+                e1.getMessage();
+            }
+
+            return false;
+
+        } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
@@ -166,15 +185,32 @@ public class AlternativeClient {
                         cmd.set(0, "null");
                     }
 
-                    oos.writeObject(cmd);
-                    oos.flush();
+                    if (CollectionHandler.objComms.contains(cmd.get(0))) {
+                        Event event = null;
+                        try {
+                            event = cmd.get(0).equals("insert") ? fromJson(cmd.get(2)) : fromJson(cmd.get(1));
+                        } catch (com.google.gson.JsonSyntaxException e) {
+                            System.out.println("Wrong Json format");
+                            cmd.set(0, "null");
+                        }
+                        oos.writeObject(cmd);
+                        oos.flush();
+                        if (event != null) {
+                            oos.writeObject(event);
+                            oos.flush();
+                        }
+                    } else {
+                        oos.writeObject(cmd);
+                        oos.flush();
+                    }
 
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.out.println("Connection aborted");
+                    System.exit(-1);
                 } catch (Instruments.WrongArgsException e) {
                     System.out.println(e.getMessage());
                 } catch (NullPointerException e) {
-                    System.out.println("Failed to create ObjectOutputStream");
+                    System.out.println("Output closed");
                 } catch (StringIndexOutOfBoundsException | NoSuchElementException e) {
                     System.out.println("Wrong command format");
                 }
@@ -217,15 +253,16 @@ public class AlternativeClient {
 
                 } while (listening);
 
-                System.out.println("Finished receiving");
+                System.out.println("Connection closed");
+                ois.close();
+                oos.close();
+                System.exit(0);
 
             } catch (IOException e) {
-                System.out.println(e.getMessage());
                 System.out.println("ಥ﹏ಥ");
 
             } catch (NullPointerException e) {
-                e.printStackTrace();
-                //System.out.println("Non-existent channel. Try again.");
+                System.out.println("Non-existent channel. Try again.");
 
             } catch (ClassNotFoundException e) {
                 System.out.println("Class not found");

@@ -1,6 +1,7 @@
 package Communication;
 
 import CollectionCLI.CollectionHandler;
+import Plot.Event;
 
 import java.io.*;
 import java.net.Socket;
@@ -10,7 +11,6 @@ import java.util.*;
 public class MultiClientThread extends Thread {
     private Socket socket = null;
     CollectionHandler ch;
-    private final Set<String> objComms = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("add", "remove", "insert", "remove_all", "add_if_min", "remove_greater", "add_if_max", "remove_lower")));
 
     public MultiClientThread(Socket socket, CollectionHandler ch) {
         super("MultiClientThread");
@@ -50,7 +50,11 @@ public class MultiClientThread extends Thread {
                         out.flush();
 
                     } else {
-                        outputLine = protocol.processResponse(cmd);
+                        if (CollectionHandler.objComms.contains(cmd.get(0))) {
+                            outputLine = protocol.processResponse(cmd, (Event) in.readObject());
+                        } else {
+                            outputLine = protocol.processResponse(cmd, null);
+                        }
                         out.writeObject(outputLine);
                         out.flush();
                     }
