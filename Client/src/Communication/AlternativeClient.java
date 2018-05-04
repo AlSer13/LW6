@@ -17,12 +17,15 @@ import static CollectionCLI.Instruments.*;
 
 public class AlternativeClient {
 
-
+/**
     String username = "s242463";
     String host = "helios.cs.ifmo.ru";
     int port = 2222;
-    int localPort = 0;
+
     String pswd = "";
+*/
+
+    int localPort = 0;
 
     public Receiving rt;
     public Sending st;
@@ -31,7 +34,6 @@ public class AlternativeClient {
     ObjectInputStream ois;
 
     int i; //Connection attempts
-
     public static void main(String[] args) throws InterruptedException {
         AlternativeClient tc = new AlternativeClient();
 
@@ -39,19 +41,22 @@ public class AlternativeClient {
         do {
             System.out.println("Enter port:");
             try {
-                tc.localPort = scan.nextInt();
-            } catch (InputMismatchException e) {
-                System.out.println("Should be integer");
-                scan.next();
+                tc.localPort = Integer.parseInt(scan.next());
+                if (tc.localPort > 65000) {
+                    tc.localPort = 0;
+                    throw new NumberFormatException("Port out of range");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Should be port number");
             }
         } while (tc.localPort == 0);
-        tc.connect();
+        tc.connectLocal();
         tc.receiveMsgs();
         tc.sendMsgs();
     }
 
 
-    public boolean connect() {
+    /**public boolean connect() {
 
         try {
 
@@ -97,7 +102,7 @@ public class AlternativeClient {
             return false;
         }
 
-    }
+    }*/
 
     public boolean connectLocal() {
 
@@ -118,6 +123,7 @@ public class AlternativeClient {
                 Thread.sleep(3000);
                 System.out.println("\nSending request again");
                 if (i == 10) System.exit(-1);
+                i++;
                 connectLocal();
 
             } catch (InterruptedException e1) {
@@ -128,7 +134,6 @@ public class AlternativeClient {
             return false;
 
         } catch (IOException e) {
-            e.printStackTrace();
             return false;
         }
 
@@ -195,10 +200,10 @@ public class AlternativeClient {
                         }
                         oos.writeObject(cmd);
                         oos.flush();
-                        if (event != null) {
+                        //if (event != null) {
                             oos.writeObject(event);
                             oos.flush();
-                        }
+                        //}
                     } else {
                         oos.writeObject(cmd);
                         oos.flush();
@@ -263,6 +268,7 @@ public class AlternativeClient {
 
             } catch (NullPointerException e) {
                 System.out.println("Non-existent channel. Try again.");
+                System.exit(-1);
 
             } catch (ClassNotFoundException e) {
                 System.out.println("Class not found");

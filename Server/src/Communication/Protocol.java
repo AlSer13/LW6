@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 
+import static CollectionCLI.CollectionHandler.objComms;
+
 class Protocol {
     CollectionHandler ch;
     Protocol(CollectionHandler ch){
@@ -16,6 +18,10 @@ class Protocol {
     String processResponse(ArrayList<String> cmd, Event event) {
         String output = "";
         try {
+            if (event!= null){
+                String s = event.name;
+                s.toLowerCase();
+            }
             switch (cmd.get(0)) {
                 case "hello": {
                     output = ("What's up?");

@@ -79,7 +79,7 @@ public class Emoji {
             try {
                 ArrayList<String> cmd = (ArrayList<String>) in.readObject();
                 inputLine = cmd.get(0);
-                if (inputLine.equals("t")) {
+                if (inputLine.toLowerCase().equals("t")) {
                     rusMod = !rusMod;
                 }
 

@@ -35,7 +35,7 @@ public class CollectionHandler {
     /**
      * The method reloads collection Events from the file
      */
-    public String load() throws IOException {
+    public synchronized String load() throws IOException {
         Events.clear();
         this.Import(file);
         return "Collection loaded";
@@ -46,7 +46,7 @@ public class CollectionHandler {
      *
      * @param file, a parameter for the file from where to import
      */
-    public String Import(File file) throws IOException {
+    public synchronized String Import(File file) throws IOException {
         FileReader fr = new FileReader(file);
         scan = new Scanner(fr);
         StringBuilder sb = new StringBuilder();
@@ -65,7 +65,7 @@ public class CollectionHandler {
      *
      * @param path parameter
      */
-    public String Import(String path) throws IOException {
+    public synchronized String Import(String path) throws IOException {
         File file = new File(extractFilePath(path), extractFileName(path));
         Import(file);
         return "Collection imported";
@@ -169,7 +169,7 @@ public class CollectionHandler {
     /**
      * Saves the collection to a file of it's CollectionHandler
      */
-    public String save() {
+    public synchronized String save() {
         try {
             PrintWriter pw = new PrintWriter(file);
             String read = gson.toJson(Events);

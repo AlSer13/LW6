@@ -63,6 +63,8 @@ public class MultiClientThread extends Thread {
                 } catch (SocketException e) {
                     System.out.println("Somebody killed the connection. Who in the world it might be? \uD83E\uDD14" +
                             Emoji.thinking);
+                } catch (NullPointerException e) {
+                    System.out.println("NPE thrown");
                 }
             } while (!inputLine.trim().equals("quit"));
         } catch (IOException e) {
