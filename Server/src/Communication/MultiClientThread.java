@@ -17,6 +17,8 @@ import static Communication.Protocol.time;
 public class MultiClientThread extends Thread {    private Socket socket = null;
     CollectionHandler ch;
 
+
+
     public MultiClientThread(Socket socket, CollectionHandler ch) {
         super("MultiClientThread");
         this.socket = socket;

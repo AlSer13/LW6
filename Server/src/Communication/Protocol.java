@@ -10,8 +10,13 @@ import java.util.EmptyStackException;
 import static CollectionCLI.CollectionHandler.objComms;
 
 class Protocol {
+    public static Command commands;
+    private boolean isValid;
+
+
     CollectionHandler ch;
-    Protocol(CollectionHandler ch){
+
+    Protocol(CollectionHandler ch) {
         this.ch = ch;
     }
     static Time time = new Time();
@@ -20,14 +25,16 @@ class Protocol {
         time.markTime();
         String output = "";
         try {
-            if (event!= null){
+            if (event != null) {
                 String s = event.name;
                 s.toLowerCase();
             }
+            isValid = true;
             switch (cmd.get(0)) {
                 case "hello": {
                     output = ("What's up?");
-                } break;
+                }
+                break;
                 case "help": {
                     output = ("•\tremove_last: удалить последний элемент из коллекции\n" +
                             "•\timport {String path}: добавить в коллекцию все данные из файла\n" +
@@ -48,7 +55,8 @@ class Protocol {
                             "•\tload: перечитать коллекцию из файла\n" +
                             "•\tcontents: содержание коллекции\n" +
                             "•\tquit: закончить сеанс клиента");
-                } break;
+                }
+                break;
                 case "remove_last": {
                     output = ch.removeLast();
                 }
@@ -119,7 +127,8 @@ class Protocol {
                 break;
                 case "contents": {
                     output = ch.contents();
-                } break;
+                }
+                break;
                 case "quit":
                     output = "Quitting...";
                     break;
@@ -128,9 +137,11 @@ class Protocol {
                     break;
                 default: {
                     output = ("No such command");
+                    isValid = false;
                 }
                 break;
             }
+            commands.submitCommand(isValid);
         } catch (EmptyStackException e) {
             output = (e.getMessage());
         } catch (IndexOutOfBoundsException | NumberFormatException e) {
@@ -141,7 +152,7 @@ class Protocol {
             output = ("Null names are not permitted");
         } catch (IOException e) {
             output = ("Wrong path");
-        } catch (Throwable e){
+        } catch (Throwable e) {
             output = ("Unknown error");
         } finally {
             if (output.equals("")) {

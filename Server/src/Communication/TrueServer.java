@@ -2,6 +2,7 @@ package Communication;
 
 import CollectionCLI.CollectionHandler;
 
+import javax.management.DynamicMBean;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
@@ -16,6 +17,8 @@ import static Communication.Protocol.time;
 
 public class TrueServer {
     public static void main(String[] args) throws IOException {
+
+
         int port = 0;
         //load collection
         CollectionHandler ch = new CollectionHandler();
@@ -61,10 +64,22 @@ public class TrueServer {
                 System.out.println("Should be integer");
                 scan.next();
             }
-        } while (port==0);
+        } while (port == 0);
         try (
                 ServerSocket serverSocket = new ServerSocket(port)
         ) {
+            //kek
+            Command commandsBean = new Command();
+            MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+            try {
+                ObjectName commands = new ObjectName("lab4:type=Commands");
+                //StandardMBean mbean = new StandardMBean(commandsBean, CommandMBean.class);
+                server.registerMBean(commandsBean, commands);
+                Protocol.commands = commandsBean;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            //kek
             while (listening) {
                 new MultiClientThread(serverSocket.accept(), ch).start();
             }
@@ -74,6 +89,7 @@ public class TrueServer {
         }
     }
 }
+
 class ShutdownHook extends Thread {
     CollectionHandler ch;
 
