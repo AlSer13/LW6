@@ -3,10 +3,6 @@ package Communication;
 import CollectionCLI.CollectionHandler;
 import CollectionCLI.Instruments;
 import Plot.Event;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
 
 
 import java.io.*;
