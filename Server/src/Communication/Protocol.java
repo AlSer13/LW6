@@ -14,8 +14,10 @@ class Protocol {
     Protocol(CollectionHandler ch){
         this.ch = ch;
     }
+    static Time time = new Time();
 
     String processResponse(ArrayList<String> cmd, Event event) {
+        time.markTime();
         String output = "";
         try {
             if (event!= null){

@@ -2,12 +2,17 @@ package Communication;
 
 import CollectionCLI.CollectionHandler;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 import java.io.*;
+import java.lang.management.ManagementFactory;
 import java.net.ServerSocket;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
 import static CollectionCLI.Instruments.*;
+import static Communication.Protocol.time;
 
 public class TrueServer {
     public static void main(String[] args) throws IOException {
@@ -16,6 +21,19 @@ public class TrueServer {
         CollectionHandler ch = new CollectionHandler();
         ShutdownHook shutdownHook = new ShutdownHook(ch);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+
+
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        try {
+            ObjectName timeName = new ObjectName("lab4:type=Time");
+            StandardMBean mbean = new StandardMBean(time, TimeMBean.class);
+            server.registerMBean(mbean, timeName);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         try {
             ch.file = new File(extractFilePath(args[0]), extractFileName(args[0]));
         } catch (NullPointerException e) {

@@ -3,13 +3,18 @@ package Communication;
 import CollectionCLI.CollectionHandler;
 import Plot.Event;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 import java.io.*;
+import java.lang.management.ManagementFactory;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.*;
 
-public class MultiClientThread extends Thread {
-    private Socket socket = null;
+import static Communication.Protocol.time;
+
+public class MultiClientThread extends Thread {    private Socket socket = null;
     CollectionHandler ch;
 
     public MultiClientThread(Socket socket, CollectionHandler ch) {
@@ -31,6 +36,7 @@ public class MultiClientThread extends Thread {
             ObjectInputStream in = new ObjectInputStream(
                     socket.getInputStream());
             Emoji.playGame(in, out);
+            time.resetTime();
             do {
                 out.writeObject("Enter a command:");
                 out.flush();
@@ -40,7 +46,6 @@ public class MultiClientThread extends Thread {
                     cmd.forEach((p) -> s.append(p).append(" "));
                     inputLine = s.toString();
                     System.out.println(socket.getPort() + ": " + inputLine);
-
                     if (cmd.get(0).equals("generate")) {
 
                         out.writeObject("generating");
