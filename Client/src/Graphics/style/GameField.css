@@ -1,0 +1,81 @@
+#map {
+    -fx-background-image: url("../imgs/Map.png");
+    -fx-background-position: center;
+    -fx-background-size: cover;
+    -fx-cursor: crosshair;
+    -fx-border-width: 5;
+    -fx-border-color: firebrick;
+}
+
+
+.root {
+    -fx-cursor: default;
+    -fx-background-color: #DAE6F3;
+}
+
+.menu {
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+
+.location-mark, .location-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 1em;
+    -fx-border-color: black;
+    -fx-border-width: 2px;
+    -fx-border-radius: 1em;
+}
+
+.left-start-pos, .bot-start-pos {
+    -fx-pref-width: 100;
+    -fx-pref-height: 100;
+    -fx-rotate: 45;
+    -fx-border-radius: 2em;
+    -fx-background-radius: 2em;
+}
+
+.location-mark:hover {
+    -fx-background-color: aliceblue;
+    -fx-opacity: 50%;
+    -fx-cursor: hand;
+}
+
+#user-label {
+    -fx-text-fill: firebrick;
+    -fx-font-family: Garamond;
+    -fx-font-weight: bolder;
+    -fx-font-size: 30;
+}
+
+.side-bar {
+    -fx-background-color: #DAE6F3;
+}
+
+.label, .location-mark, .location-button, #pick-again-btn {
+    -fx-font-family: Garamond;
+    -fx-font-size: 20;
+    -fx-font-weight: bold;
+}
+
+.location-button {
+    -fx-border-width: 0;
+}
+
+#close {
+    -fx-font-weight: bolder;
+}
+
+#close:hover {
+    -fx-background-color: red;
+}
+
+/*.button {
+    -fx-background-color: linear-gradient(from 0px 0px to 0px 50px, grey, darkgray 50%, dimgray 99%, white);
+    -fx-background-radius: 1em;
+    -fx-effect: dropshadow(one-pass-box, maroon, 10, 1.0, 100, 100)
+
+}
+
+.button:pressed {
+    -fx-background-color: linear-gradient(from 0px 0px to 0px 50px, indianred, darkgray 50%, dimgray 99%, white);
+}*/

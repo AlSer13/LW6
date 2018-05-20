@@ -1,0 +1,43 @@
+.root {
+    -fx-background-image: url("../imgs/themes/MiniMap.png");
+    -fx-background-position: center;
+    -fx-background-size: stretch;
+}
+
+.label {
+    -fx-font-size: 25px;
+    -fx-text-fill: black;
+    -fx-font-family: Garamond;
+}
+
+.button {
+    /*-fx-background-image: url("imgs/themes/bark.jpg");
+    -fx-background-position: center;
+    -fx-background-size: cover;*/
+    -fx-background-radius: 3em;
+    -fx-font-family: Garamond;
+    -fx-font-size: 20;
+}
+
+.text-field {
+    -fx-font-family: 'Cambria';
+    -fx-font-size: 20px;
+}
+
+#welcome-text {
+    -fx-font-size: 35px;
+}
+
+#close-button {
+    -fx-text-fill:red;
+    -fx-font-size:25;
+    -fx-font-weight:bold;
+    -fx-font-family:'Comic Sans MS';
+}
+
+#pop-up-text {
+    -fx-font-weight: bold;
+    -fx-font-size:20;
+    -fx-text-fill: black;
+    -fx-font-family: Garamond;
+}
