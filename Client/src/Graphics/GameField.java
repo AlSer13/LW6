@@ -1,6 +1,9 @@
 package Graphics;
 
-import javafx.application.Application;
+import Communication.AlternativeClient;
+import javafx.application.Platform;
+import javafx.concurrent.Service;
+import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -13,48 +16,65 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.stream.Collectors;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.*;
 
-public class GameField extends Application {
+public class GameField {
 
-    Image map = new Image(new File("Client\\src\\Graphics\\imgs\\Map.png").toURI().toString());
-    double mapWidth = map.getWidth() / 4;
-    double mapHeigth = map.getHeight() / 4;
-    int limit = 8;
-    Unit mainUser;
-    HashSet<Unit> unitSet = new HashSet<>();
+    //core fields
+    private Unit mainUnit;
+    private AlternativeClient tc;
 
-    public GameField(String username, int mainCharId, Stage stage) throws Exception {
-        mainUser = new Unit(username, mainCharId);
-        start(stage);
+    //layout fields
+    private VBox userChart = new VBox();
+    private Scene scene;
+    private Stage primaryStage;
+    private Image map = new Image(new File("Client\\src\\Graphics\\imgs\\Map.png").toURI().toString());
+    private double mapWidth = map.getWidth() / 4;
+    private double mapHeight = map.getHeight() / 4;
+    private ArrayList<LocationMark> starts = new ArrayList<>();
+
+    //fields for Unit movements
+    private HashMap<Integer, LocationMark> locations = new HashMap<>();
+    private ArrayList<Unit> playerList = new ArrayList<>();
+
+    //offsets to move the window
+    private static double xOffset;
+    private static double yOffset;
+
+
+    GameField(Stage stage, AlternativeClient tc, Unit unit) throws Exception {
+        this.tc = tc;
+        mainUnit = unit;
+        this.primaryStage = stage;
+        start(primaryStage);
     }
 
-    class LocationMark extends TilePane {
-        String name;
+
+    //layout management
+
+    class LocationMark extends TilePane implements Serializable {
+        int id;
+        private String name;
         int limit;
         Label label;
-        private ArrayList<Unit> charPool = new ArrayList<>();
+        HashSet<Unit> charPool = new HashSet<>();
 
-        LocationMark(int limit) {
-            this.setPrefSize(140,110);
+        LocationMark(int limit, int id) {
+            this.setPrefSize(140, 110);
             this.getStyleClass().add("location-mark");
             this.limit = limit;
             this.label = new Label();
             this.getChildren().add(label);
-            this.setOnMouseClicked(s -> mainUser.moveTo(this));
+            this.setOnMouseClicked(s -> mainUnit.moveTo(this));
+            this.id = id;
         }
 
-        LocationMark(double X, double Y, int limit) {
-            this(limit);
+        LocationMark(double X, double Y, int limit, String name, int id) {
+            this(limit, id);
             this.setLayoutX(X);
             this.setLayoutY(Y);
-        }
-
-        LocationMark(double X, double Y, int limit, String name) {
-            this(X, Y, limit);
             this.name = name;
             setLabel();
         }
@@ -66,31 +86,10 @@ public class GameField extends Application {
             this.setAlignment(Pos.TOP_CENTER);
         }
 
-        boolean leave(Unit unit) {
-            if (charPool.contains(unit)){
-                charPool.remove(unit);
-                return true;
-            }
-            return false;
-
-        }
-
-        boolean transfer(Unit unit) {
-            if (charPool.size()<limit) {
-                charPool.add(unit);
-                return true;
-            }
-            return isHere(unit);
-
-        }
-
-        boolean isHere(Unit unit) {
-            return charPool.contains(unit);
-        }
-
     }
 
-    public void initMenu(HBox hbox) {
+
+    static void initMenu(Stage primaryStage, HBox hbox) {
 
         MenuBar mainMenu = new MenuBar();
         Menu file = new Menu("File");
@@ -118,7 +117,10 @@ public class GameField extends Application {
         close.getItems().add(dummy);
         close.setId("close");
 
-        close.setOnShowing(e -> System.exit(0));
+        close.setOnShowing(e -> {
+            primaryStage.close();
+            System.exit(0);
+        });
         leftClose.getMenus().add(close);
 
         Region spacer = new Region();
@@ -127,13 +129,287 @@ public class GameField extends Application {
         HBox.setHgrow(spacer, Priority.SOMETIMES);
         hbox.getChildren().addAll(mainMenu, spacer, leftClose);
 
+        //action
+
+        //make the window draggable
+        hbox.setOnMousePressed(event -> {
+            xOffset = primaryStage.getX() - event.getScreenX();
+            yOffset = primaryStage.getY() - event.getScreenY();
+        });
+
+        hbox.setOnMouseDragged(event -> {
+            primaryStage.setX(event.getScreenX() + xOffset);
+            primaryStage.setY(event.getScreenY() + yOffset);
+        });
+
 
     }
 
-    public void setupLocationGenerator(Pane mapPane) {
+
+    private void start(Stage primaryStage) throws Exception {
+
+        BorderPane pane = new BorderPane();
+
+        scene = new Scene(pane/*, mapWidth+300, mapHeight+150*/);
+        scene.getStylesheets().add(GameField.class.getResource("/Graphics/style/GameField.css").toExternalForm());
+
+        primaryStage.setResizable(true);
+        primaryStage.setScene(scene);
+
+
+        //middle map panel
+        AnchorPane mapPane = new AnchorPane();
+        mapPane.setShape(new Rectangle(mapWidth, mapHeight));
+        mapPane.setMinSize(mapWidth, mapHeight);
+        mapPane.setMaxSize(mapWidth, mapHeight);
+        mapPane.setId("map");
+
+        //starts
+
+        //left start
+        VBox leftStart = new VBox();
+        leftStart.setSpacing(50.0);
+
+        LocationMark LStart1 = new LocationMark(1, 15);
+        LocationMark LStart2 = new LocationMark(1, 1);
+        LocationMark LStart3 = new LocationMark(1, 2);
+        LocationMark LStart4 = new LocationMark(1, 3);
+
+        leftStart.getChildren().addAll(LStart1, LStart2, LStart3, LStart4);
+        leftStart.getChildren().forEach(e -> e.getStyleClass().add("left-start-pos"));
+
+
+        //bottom start
+        HBox botStart = new HBox();
+        botStart.setSpacing(50.0);
+
+        LocationMark BStart1 = new LocationMark(1, 4);
+        LocationMark BStart2 = new LocationMark(1, 5);
+        LocationMark BStart3 = new LocationMark(1, 6);
+        LocationMark BStart4 = new LocationMark(1, 7);
+
+        botStart.getChildren().addAll(BStart1, BStart2, BStart3, BStart4);
+        botStart.getChildren().forEach(e -> e.getStyleClass().add("bot-start-pos"));
+
+        //starts all together
+        starts.addAll(Arrays.asList(LStart1, LStart2, LStart3, LStart4, BStart1, BStart2, BStart3, BStart4));
+
+        //locations
+        LocationMark desert = new LocationMark(208.0, 322.0, 3, "Desert", 8);
+        LocationMark beach = new LocationMark(242.0, 89.0, 2, "Beach", 9);
+        LocationMark island = new LocationMark(409.0, 188.0, 2, "Island", 10);
+        LocationMark bTree = new LocationMark(541.0, 70.0, 1, "B-Tree", 11);
+        LocationMark away = new LocationMark(731.0, 38.0, 1, "Away", 12);
+        LocationMark christopherHome = new LocationMark(645.0, 247.0, 2, "Christopher's\nhome", 13);
+        LocationMark forest = new LocationMark(560.0, 440.0, 3, "Forest", 14);
+        locations.put(beach.id, beach);
+        locations.put(desert.id, desert);
+        locations.put(island.id, island);
+        locations.put(bTree.id, bTree);
+        locations.put(away.id, away);
+        locations.put(christopherHome.id, christopherHome);
+        locations.put(forest.id, forest);
+        locations.forEach((k, v) -> v.setVisible(false));
+        locations.put(LStart1.id, LStart1);
+        locations.put(BStart1.id, BStart1);
+        locations.put(LStart2.id, LStart2);
+        locations.put(BStart2.id, BStart2);
+        locations.put(LStart3.id, LStart3);
+        locations.put(BStart3.id, BStart3);
+        locations.put(LStart4.id, LStart4);
+        locations.put(BStart4.id, BStart4);
+
+        mapPane.getChildren().addAll(desert, beach, island, bTree, away, christopherHome, forest);
+        mapPane.getChildren().add(leftStart);
+        mapPane.getChildren().add(botStart);
+        AnchorPane.setLeftAnchor(leftStart, 50.0);
+        AnchorPane.setTopAnchor(leftStart, 70.0);
+        AnchorPane.setBottomAnchor(botStart, 50.0);
+        AnchorPane.setRightAnchor(botStart, 100.0);
+
+        pane.setCenter(mapPane);
+
+
+        //top, bot panels
+        HBox topPanel = new HBox();
+        topPanel.setAlignment(Pos.TOP_LEFT);
+        topPanel.setSpacing(0);
+        topPanel.setPadding(new Insets(0, 0, 5, 0));
+        initMenu(primaryStage, topPanel);
+        pane.setTop(topPanel);
+
+        HBox botPanel = new HBox();
+        botPanel.setAlignment(Pos.CENTER);
+        botPanel.setSpacing(10);
+        botPanel.setPadding(new Insets(0));
+        pane.setBottom(botPanel);
+
+
+        //right panel
+        VBox rightPanel = new VBox();
+        rightPanel.getStyleClass().add("side-bar");
+        rightPanel.setAlignment(Pos.CENTER);
+        rightPanel.setPadding(new Insets(0, 5, 10, 5));
+        rightPanel.setPrefWidth(300);
+
+        //pick again button
+        Button pickAgain = new Button("Pick again");
+        pickAgain.setId("pick-again-btn");
+
+        //add children
+        rightPanel.getChildren().add(userChart);
+        rightPanel.getChildren().add(pickAgain);
+        VBox.setVgrow(userChart, Priority.SOMETIMES);
+        pane.setRight(rightPanel);
+
+
+        mainUnit.menuIcon.setStyle("-fx-border-color: firebrick;-fx-border-width: 3;");
+
+
+        //action
+
+        ShutdownHook shutdownHook = new ShutdownHook(() -> removeUnit(mainUnit));
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+        //InitClick
+        class InitClick implements EventHandler<MouseEvent> {
+            public void handle(MouseEvent e) {
+                if (e.getTarget() instanceof LocationMark) {
+                    if (mainUnit.moveTo((LocationMark) e.getTarget())) {
+                        starts.forEach(s -> s.removeEventHandler(MouseEvent.MOUSE_CLICKED, this));
+                        locations.forEach((k, v) -> v.setVisible(true));
+                        addUnit(mainUnit);
+                    } else {
+                        new Alert(Alert.AlertType.WARNING, "Location occupied by" + ((LocationMark) e.getTarget()).charPool.iterator().next().getName()).showAndWait();
+                    }
+                }
+            }
+
+        }
+        InitClick initClick = new InitClick();
+        starts.forEach(s -> s.addEventHandler(MouseEvent.MOUSE_CLICKED, initClick));
+
+        //pick again button pressed
+        pickAgain.setOnAction(e -> {
+            try {
+                new Carousel(primaryStage, tc, mainUnit, this, scene.getWidth());
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+
+        });
+
+        //unit exit
+
+
+        new Alert(Alert.AlertType.INFORMATION, "Now you wil choose your start position.").showAndWait();
+        primaryStage.show();
+        service.start();
+
+    }
+
+
+    private Service<Boolean> service = new Service<Boolean>() {
+
+        @Override
+        protected Task<Boolean> createTask() {
+            return new Task<Boolean>() {
+                boolean listening = true;
+
+                @Override
+                protected Boolean call() {
+                    do {
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            //do nothing
+                        }
+                        sync();
+                        /*try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }*/
+                    } while (listening);
+                    return true;
+                }
+            };
+        }
+
+    };
+
+
+    private void sync() {
+        try {
+            tc.units = (Stack<Unit>) tc.ois.readObject();
+            playerList.stream().filter(unit -> tc.units.get(tc.units.indexOf(unit)).removed && !unit.removed)
+                    .forEach(this::removeUnit);
+            tc.units.stream().filter(unit -> !unit.equals(mainUnit) && !unit.removed && unit.locId != 0)
+                    .forEach(this::addUnit);
+            tc.oos.reset();
+            tc.oos.writeObject(mainUnit);
+            tc.oos.flush();
+
+        } catch (IOException | ClassNotFoundException e) {
+            //do nothing (кидает исключение когда прилетает строка)
+        }
+
+    }
+
+
+    private void addUnit(Unit unit) {
+        if (unit.currentLocation == null) unit.restore(locations);
+        if (!playerList.contains(unit)) {
+            //int limit = 8;
+            //if (tc.units.size() < limit) {
+            playerList.add(unit);
+            unit.moveTo(locations.get(unit.locId));
+            addToChart(unit);
+            // }
+        } else playerList.get(playerList.indexOf(unit)).moveTo(locations.get(unit.locId));
+    }
+
+
+    private void removeUnit(Unit unit) {
+//        TODO Сделать удаление юнита с других клиентов
+        Platform.runLater(() -> userChart.getChildren().remove(unit.menuIcon));
+        unit.removed = true;
+        try {
+            tc.oos.reset();
+            tc.oos.writeObject(unit);
+            tc.oos.flush();
+        } catch (IOException e) {
+            //do nothing
+        }
+        unit.leave();
+        System.out.println(unit.getName() + "removed.");
+    }
+
+
+    private void addToChart(Unit unit) {
+        Platform.runLater(() ->
+                userChart.getChildren().add(unit.menuIcon));
+    }
+
+    void pickAgain() {
+//        TODO Испраить ошибку с иконкой в меню
+        primaryStage.setScene(scene);
+    }
+
+}
+
+
+
+
+
+/*-*******************OLD CODE********************/
+
+
+/*
+public void setupLocationGenerator(Pane mapPane) {
         mapPane.setOnMouseClicked(e -> {
 
-            LocationMark lm = new LocationMark(e.getX(), e.getY(), 1);
+            LocationMark lm = new LocationMark(e.getX(), e.getY(), 1, 1000);
             mapPane.getChildren().add(lm);
             Alert dialog = new Alert(Alert.AlertType.CONFIRMATION);
             dialog.setTitle("Confirmation");
@@ -152,179 +428,4 @@ public class GameField extends Application {
 
         });
     }
-
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-        BorderPane pane = new BorderPane();
-        primaryStage.setResizable(true);
-
-        //start
-        //left start
-        VBox leftStart = new VBox();
-
-        LocationMark LStart1 = new LocationMark(1);
-        LocationMark LStart2 = new LocationMark(1);
-        LocationMark LStart3 = new LocationMark(1);
-        LocationMark LStart4 = new LocationMark(1);
-
-        leftStart.getChildren().addAll(LStart1, LStart2, LStart3, LStart4);
-        leftStart.getChildren().forEach(e -> e.getStyleClass().add("left-start-pos"));
-
-
-        //bottom start
-        HBox botStart = new HBox();
-
-        LocationMark BStart1 = new LocationMark(1);
-        LocationMark BStart2 = new LocationMark(1);
-        LocationMark BStart3 = new LocationMark(1);
-        LocationMark BStart4 = new LocationMark(1);
-
-        botStart.getChildren().addAll(BStart1, BStart2, BStart3, BStart4);
-        botStart.getChildren().forEach(e -> e.getStyleClass().add("bot-start-pos"));
-
-        //starts all together
-        ArrayList<LocationMark> starts = new ArrayList<>();
-        starts.addAll(Arrays.asList(LStart1, LStart2, LStart3, LStart4, BStart1, BStart2, BStart3, BStart4));
-
-        //map pane
-        AnchorPane mapPane = new AnchorPane();
-
-        mapPane.setShape(new Rectangle(mapWidth, mapHeigth));
-        mapPane.setMinSize(mapWidth, mapHeigth);
-        mapPane.setMaxSize(mapWidth, mapHeigth);
-
-        mapPane.getChildren().add(leftStart);
-        mapPane.getChildren().add(botStart);
-
-        leftStart.setSpacing(50.0);
-        botStart.setSpacing(50.0);
-
-        //50*6+141*4
-
-        AnchorPane.setLeftAnchor(leftStart, 50.0);
-        AnchorPane.setTopAnchor(leftStart, 70.0);
-        AnchorPane.setBottomAnchor(botStart,50.0);
-        AnchorPane.setRightAnchor(botStart, 100.0);
-
-        mapPane.setId("map");
-        pane.setCenter(mapPane);
-
-        //places on map
-
-
-
-        //top,bot
-
-        HBox topPanel = new HBox();
-        topPanel.setAlignment(Pos.TOP_LEFT);
-        topPanel.setSpacing(0);
-        topPanel.setPadding(new Insets(0,0,5,0));
-        initMenu(topPanel);
-        pane.setTop(topPanel);
-
-        HBox botPanel = new HBox();
-        botPanel.setAlignment(Pos.CENTER);
-        botPanel.setSpacing(10);
-        botPanel.setPadding(new Insets(0));
-        pane.setBottom(botPanel);
-
-        //right
-
-        VBox rightPanel = new VBox();
-        rightPanel.getStyleClass().add("side-bar");
-        rightPanel.setAlignment(Pos.CENTER);
-        rightPanel.setPadding(new Insets(0,5,10,5));
-        pane.setRight(rightPanel);
-
-        Button pickAgain = new Button("Pick again");
-        pickAgain.setId("pick-again-btn");
-        pickAgain.setOnAction(e -> {
-            try {
-                Carousel carousel = new Carousel(mainUser.username, primaryStage);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-
-        });
-
-        //rightPanel.setPrefWidth(220);
-        VBox userChart = new VBox();
-        VBox.setVgrow(userChart, Priority.SOMETIMES);
-
-        rightPanel.getChildren().add(userChart);
-        rightPanel.getChildren().add(pickAgain);
-
-        //Add users
-
-
-        mainUser.menuIcon.setStyle("-fx-border-color: firebrick;-fx-border-width: 3;");
-
-        addUnit(mainUser);
-        addUnit(new Unit("dasha", 2));
-        addUnit(new Unit("dasha", 3));
-
-        userChart.getChildren().addAll(unitSet.stream().map(u -> u.menuIcon).collect(Collectors.toList()));
-
-
-
-        //initclick
-        class InitClick implements EventHandler<MouseEvent> {
-            public void handle(MouseEvent e) {
-                if (e.getTarget() instanceof LocationMark) {
-                    mainUser.moveTo((LocationMark) e.getTarget());
-                    starts.forEach(s -> {
-                        s.removeEventHandler(MouseEvent.MOUSE_CLICKED, this);
-                    });
-                    play(mapPane);
-                }
-            }
-
-        }
-        InitClick initClick = new InitClick();
-        starts.forEach(s -> s.addEventHandler(MouseEvent.MOUSE_CLICKED, initClick));
-
-
-        Scene scene = new Scene(pane/*, mapWidth+300, mapHeigth+150*/);
-        scene.getStylesheets()
-                .add(Login.class.getResource("/Graphics/style/GameField.css").toExternalForm());
-
-        //choose start point
-
-        primaryStage.setScene(scene);
-        primaryStage.show();
-
-        //start
-        Alert start = new Alert(Alert.AlertType.INFORMATION, "Chose your start position.");
-        start.showAndWait();
-
-        /*Duration animationDuration = new Duration(1500);
-
-        Timeline timeline = new Timeline(
-                //стартовые значения
-                new KeyFrame( Duration.ZERO, new KeyValue(forest.translateXProperty(), 0)),
-                new KeyFrame( Duration.ZERO, new KeyValue(forest.translateYProperty(), 0)),
-                //конечные значения
-                new KeyFrame( animationDuration, new KeyValue(forest.translateXProperty(), 100)),
-                new KeyFrame( animationDuration, new KeyValue(forest.translateYProperty(), 100))
-        );
-        timeline.play();*/
-
-    }
-
-    void play(Pane mapPane){
-        LocationMark desert = new LocationMark(208.0, 322.0, 3, "Desert");
-        LocationMark beach = new LocationMark(242.0, 89.0, 2, "Beach");
-        LocationMark island = new LocationMark(409.0, 188.0, 2,"Island");
-        LocationMark bTree = new LocationMark(541.0, 70.0, 1,"B-Tree");
-        LocationMark away = new LocationMark(731.0, 38.0, 1,"Away");
-        LocationMark christopherHome = new LocationMark(645.0, 247.0,2, "Christopher's\nhome");
-        LocationMark forest = new LocationMark(560.0, 440.0, 3,"Forest");
-        mapPane.getChildren().addAll(desert, beach, island, bTree, away, christopherHome, forest);
-    }
-
-    void addUnit(Unit unit) {
-        if (unitSet.size()<limit)
-            unitSet.add(unit);
-    }
-
-}
+ */

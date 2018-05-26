@@ -1,126 +1,81 @@
 package Communication;
 
-import CollectionCLI.CollectionHandler;
-import CollectionCLI.Instruments;
-import Plot.Event;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
+import Graphics.GameField;
+import Graphics.Login;
+import Graphics.Unit;
+import javafx.application.Application;
+import javafx.scene.control.Alert;
+import javafx.stage.Stage;
 
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
-import static CollectionCLI.Instruments.*;
 
-public class AlternativeClient {
+public class AlternativeClient extends Application {
 
-/**
-    String username = "s242463";
-    String host = "helios.cs.ifmo.ru";
-    int port = 2222;
+    public Stack<Unit> units = new Stack<>();
 
-    String pswd = "";
-*/
+    private int localPort = 0;
 
-    int localPort = 0;
+    public ObjectOutputStream oos;
+    public ObjectInputStream ois;
 
-    public Receiving rt;
-    public Sending st;
-
-    ObjectOutputStream oos;
-    ObjectInputStream ois;
-
-    int i; //Connection attempts
-    public static void main(String[] args) throws InterruptedException {
-        AlternativeClient tc = new AlternativeClient();
-
-        Scanner scan = new Scanner(System.in);
+    private int readPort() {
+        int port = 0;
+        //Scanner scan = new Scanner(System.in);
         do {
             System.out.println("Enter port:");
             try {
-                tc.localPort = Integer.parseInt(scan.next());
-                if (tc.localPort > 65000) {
-                    tc.localPort = 0;
+                //localPort = Integer.parseInt(scan.next());
+                port = 3345;
+                System.out.println(port);
+                if (port > 65000) {
+                    port = 0;
                     throw new NumberFormatException("Port out of range");
                 }
             } catch (NumberFormatException e) {
                 System.out.println("Should be port number");
             }
-        } while (tc.localPort == 0);
-        tc.connectLocal();
-        tc.receiveMsgs();
-        tc.sendMsgs();
+        } while (port == 0);
+        return port;
     }
 
+    private int i; //Connection attempts
 
-    /**public boolean connect() {
+    public void start(Stage primaryStage) {
 
-        try {
+        localPort = readPort();
+        Login login = new Login(this, primaryStage);
 
-            JSch jSch = new JSch();
+    }
 
-            Session session = jSch.getSession(username, host, port);
-            System.out.println("Enter pswd:");
-            Scanner scan = new Scanner(System.in);
-            pswd = scan.nextLine();
-            session.setPassword(pswd);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setConfig("PreferredAuthentications",
-                    "publickey,keyboard-interactive,password");
-
-            session.connect();
-            Channel channel = session.getStreamForwarder(host, localPort);
-            channel.connect();
-
-            oos = new ObjectOutputStream(channel.getOutputStream());
-            oos.flush();
-            ois = new ObjectInputStream(channel.getInputStream());
-
-            return true;
-
-        } catch (JSchException e) {
-            try {
-                System.out.print(i < 2 ? "\nFailed to connect to server " : "\n┻━┻ ︵ヽ(`Д´)ﾉ︵﻿ ┻━┻");
-                Thread.sleep(3000);
-                System.out.println("\nSending request again");
-                if (i == 10) System.exit(-1);
-                i++;
-
-                connect();
-
-            } catch (InterruptedException e1) {
-                e1.getMessage();
-            }
-
-            return false;
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-    }*/
-
-    public boolean connectLocal() {
+    public void connectLocal() {
 
         try {
 
             Socket socket = new Socket("localhost", localPort);
-
             oos = new ObjectOutputStream(socket.getOutputStream());
-            oos.flush();
             ois = new ObjectInputStream(socket.getInputStream());
-            return true;
 
-        } catch (ConnectException e) {
+            System.out.println((String) ois.readObject());
+
+            //пишется из первой строки цикла в MultiClientThread
+            units = (Stack<Unit>) ois.readObject();
+            oos.reset();
+            oos.writeObject(null);
+            oos.flush();
+
+
+        } catch (IOException | ClassNotFoundException e) {
+
+            e.printStackTrace();
 
             try {
 
-                System.out.print(i < 2 ? "\nFailed to connect to server (╯°□°）╯︵ ┻━┻`" : "\n┻━┻ ︵ヽ(`Д´)ﾉ︵﻿ ┻━┻");
-                Thread.sleep(3000);
+                new Alert(Alert.AlertType.ERROR, (i < 2 ? "\nFailed to connect to server (╯°□°）╯︵ ┻━┻`" : "\n┻━┻ ︵ヽ(`Д´)ﾉ︵﻿ ┻━┻")).showAndWait();
+                Thread.sleep(5000);
                 System.out.println("\nSending request again");
                 if (i == 10) System.exit(-1);
                 i++;
@@ -131,16 +86,25 @@ public class AlternativeClient {
                 e1.getMessage();
 
             }
-            return false;
 
-        } catch (IOException e) {
-            return false;
         }
-
     }
+}
 
 
-    public void receiveMsgs() {
+
+
+
+
+
+
+
+
+
+/*-********************OLD CODE***************************/
+
+
+   /* public void receiveMsgs() {
         rt = new Receiving();
         rt.start();
     }
@@ -159,11 +123,13 @@ public class AlternativeClient {
         @Override
         public void run() {
 
-            BufferedReader consoleIn = new BufferedReader(new InputStreamReader(System.in));
+            //BufferedReader consoleIn = new BufferedReader(new InputStreamReader(System.in));
 
             while (sending) {
                 try {
-
+                    if (units != null)
+                        oos.writeObject(units);
+                    //----------------------------------------------------------------------------
                     ArrayList<String> cmd = parseCmd(multilineJson(consoleIn));
 
                     if (cmd.get(0).equals("help")) {
@@ -208,12 +174,11 @@ public class AlternativeClient {
                         oos.writeObject(cmd);
                         oos.flush();
                     }
+                    //-----------------------------------------------------------------------------------------------------
 
                 } catch (IOException e) {
                     System.out.println("Connection aborted");
                     System.exit(-1);
-                } catch (Instruments.WrongArgsException e) {
-                    System.out.println(e.getMessage());
                 } catch (NullPointerException e) {
                     System.out.println("Output closed");
                 } catch (StringIndexOutOfBoundsException | NoSuchElementException e) {
@@ -228,6 +193,7 @@ public class AlternativeClient {
 
 
     public class Receiving extends Thread {
+        public ReentrantLock initLock = new ReentrantLock();
 
         public boolean listening = true;
 
@@ -235,14 +201,34 @@ public class AlternativeClient {
         public void run() {
 
             try {
+                initLock.lock();
+                System.out.println(ois.readObject());
+                units = (Stack<CarouselItem>) ois.readObject();
+                initLock.unlock();
+                try {
+                    Thread.sleep(40);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                initLock.lock();
+                oos.writeObject(units);
+                initLock.unlock();
+                try {
+                    Thread.sleep(40);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                initLock.lock();
+
+
 
                 do {
 
-                    String msg = (String) ois.readObject();
+
                     System.out.println(msg);
                     switch (msg) {
                         case "generating":
-                            Stack<Event> events = (Stack<Event>) ois.readObject();
+                            Stack<CarouselItem> events = (Stack<Event>) ois.readObject();
                             events.forEach(e -> {
                                 System.out.println("\n" + e.name + ":");
                                 e.go();
@@ -255,6 +241,7 @@ public class AlternativeClient {
                             break;
 
                     }
+                    listening = false;
 
                 } while (listening);
 
@@ -274,6 +261,5 @@ public class AlternativeClient {
                 System.out.println("Class not found");
             }
         }
-    }
+    }*/
 
-}

@@ -1,14 +1,11 @@
 package Communication;
 
 import CollectionCLI.CollectionHandler;
-import Plot.Event;
-import com.sun.org.apache.xalan.internal.xsltc.dom.MultiValuedNodeHeapIterator;
+import Graphics.Unit;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
-
-import static CollectionCLI.CollectionHandler.objComms;
 
 class Protocol {
     CollectionHandler ch;
@@ -16,11 +13,11 @@ class Protocol {
         this.ch = ch;
     }
 
-    String processResponse(ArrayList<String> cmd, Event event) {
+    String processResponse(ArrayList<String> cmd, Unit unit) {
         String output = "";
         try {
-            if (event!= null){
-                String s = event.name;
+            if (unit!= null){
+                String s = unit.getName();
                 s.toLowerCase();
             }
             switch (cmd.get(0)) {
@@ -57,7 +54,7 @@ class Protocol {
                 }
                 break;
                 case "remove_all": {
-                    output = ch.removeAll(event);
+                    output = ch.removeAll(unit);
                 }
                 break;
                 case "reorder": {
@@ -73,7 +70,7 @@ class Protocol {
                         int arg = Integer.parseInt(cmd.get(1));
                         output = ch.remove(arg);
                     } catch (NumberFormatException e) {
-                        output = ch.remove(event); //перегрузить
+                        output = ch.remove(unit); //перегрузить
                     }
                 }
                 case "info": {
@@ -81,19 +78,19 @@ class Protocol {
                 }
                 break;
                 case "add_if_max": {
-                    output = ch.addIfMax(event);
+                    output = ch.addIfMax(unit);
                 }
                 break;
                 case "remove_greater": {
-                    output = ch.removeGreater(event);
+                    output = ch.removeGreater(unit);
                 }
                 break;
                 case "insert": {
-                    output = ch.insert(Integer.parseInt(cmd.get(1)), event); //!!!!!!
+                    output = ch.insert(Integer.parseInt(cmd.get(1)), unit); //!!!!!!
                 }
                 break;
                 case "add_if_min": {
-                    output = ch.addIfMin(event);
+                    output = ch.addIfMin(unit);
                 }
                 break;
                 case "remove_first": {
@@ -101,7 +98,7 @@ class Protocol {
                 }
                 break;
                 case "remove_lower": {
-                    output = ch.removeLower(event);
+                    output = ch.removeLower(unit);
                 }
                 break;
                 case "clear": {
@@ -109,7 +106,7 @@ class Protocol {
                 }
                 break;
                 case "add": {
-                    output = ch.add(event);
+                    output = ch.add(unit);
                 }
                 break;
                 case "load": {

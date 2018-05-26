@@ -1,12 +1,12 @@
 package CollectionCLI;
 
-import Plot.Event;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
 import java.util.*;
+import Graphics.Unit;
 
 import static CollectionCLI.Instruments.extractFileName;
 import static CollectionCLI.Instruments.extractFilePath;
@@ -17,7 +17,7 @@ import static CollectionCLI.Instruments.extractFilePath;
 
 public class CollectionHandler {
     public static final Set<String> objComms = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("add", "remove", "insert", "remove_all", "add_if_min", "remove_greater", "add_if_max", "remove_lower")));
-    public Stack<Event> Events = new Stack<>();
+    public Stack<Unit> units = new Stack<>();
     public File file;
     boolean order = true;
     Scanner scan;
@@ -33,10 +33,10 @@ public class CollectionHandler {
     }
 
     /**
-     * The method reloads collection Events from the file
+     * The method reloads collection units from the file
      */
     public synchronized String load() throws IOException {
-        Events.clear();
+        units.clear();
         this.Import(file);
         return "Collection loaded";
     }
@@ -54,7 +54,7 @@ public class CollectionHandler {
             sb.append(scan.nextLine());
         }
         String json = sb.toString();
-        Events = gson.fromJson(json, new TypeToken<Stack<Event>>() {
+        units = gson.fromJson(json, new TypeToken<Stack<Unit>>() {
         }.getType());
         fr.close();
         return "Collection imported";
@@ -76,9 +76,9 @@ public class CollectionHandler {
      *
      * @param e, given object
      */
-    public String removeAll(Event e) {
-        Events.removeIf(p -> p.equals(e));
-        return ("All equal to " + e.name + "remove");
+    public String removeAll(Unit e) {
+        units.removeIf(p -> p.equals(e));
+        return ("All equal to " + e.getName() + "remove");
     }
 
     /**
@@ -86,10 +86,10 @@ public class CollectionHandler {
      */
     public String reorder() {
         if (order) {
-            Events.sort(Comparator.reverseOrder());
+            units.sort(Comparator.reverseOrder());
             order = false;
         } else {
-            Events.sort(Comparator.naturalOrder());
+            units.sort(Comparator.naturalOrder());
             order = true;
         }
         return "Collection reordered";
@@ -99,8 +99,8 @@ public class CollectionHandler {
      * Pops from the Stack
      */
     public String removeLast() {
-        if (!Events.isEmpty()) {
-            Events.pop();
+        if (!units.isEmpty()) {
+            units.pop();
             return "Last element removed";
         } else return ("Collection is empty");
     }
@@ -109,8 +109,8 @@ public class CollectionHandler {
      * Removes the element with zero index
      */
     public String removeFirst() {
-        if (!Events.isEmpty()) {
-            Events.removeElementAt(0);
+        if (!units.isEmpty()) {
+            units.removeElementAt(0);
             return ("First element removed");
         } else return ("Collection is empty");
     }
@@ -121,8 +121,8 @@ public class CollectionHandler {
      * @param i index
      */
     public String remove(int i) {
-        if (!Events.isEmpty()) {
-            Events.removeElementAt(i);
+        if (!units.isEmpty()) {
+            units.removeElementAt(i);
             return ("Removed element at " + i);
         } else return ("Collection is empty");
     }
@@ -130,17 +130,17 @@ public class CollectionHandler {
     /**
      * Removes an element by it's value
      *
-     * @param e Example event
+     * @param e Example character
      */
-    public String remove(Event e) {
-        if (!Events.removeIf(a -> a.compareTo(e) == 0)) {
+    public String remove(Unit e) {
+        if (!units.removeIf(a -> a.compareTo(e) == 0)) {
             return ("No such element");
         } else
             return ("Element removed");
     }
 
     public String sort(){
-        Events.sort(Comparator.naturalOrder());
+        units.sort(Comparator.naturalOrder());
         return (order ? "Natural order" : "Reverse order");
     }
 
@@ -149,8 +149,8 @@ public class CollectionHandler {
      *
      * @param e the first comparable
      */
-    public String removeGreater(Event e) {
-        if (Events.removeIf(a -> a.compareTo(e) < 0)) {
+    public String removeGreater(Unit e) {
+        if (units.removeIf(a -> a.compareTo(e) < 0)) {
             return "Removed successfully";
         } else return "No such element";
     }
@@ -160,8 +160,8 @@ public class CollectionHandler {
      *
      * @param e the first comparable
      */
-    public String removeLower(Event e) {
-        if (Events.removeIf(a -> a.compareTo(e) > 0)) {
+    public String removeLower(Unit e) {
+        if (units.removeIf(a -> a.compareTo(e) > 0)) {
             return "Removed successfully";
         } else return "No such element";
     }
@@ -172,7 +172,7 @@ public class CollectionHandler {
     public synchronized String save() {
         try {
             PrintWriter pw = new PrintWriter(file);
-            String read = gson.toJson(Events);
+            String read = gson.toJson(units);
             pw.print(read);
             pw.close();
             return ("Collection saved");
@@ -187,10 +187,10 @@ public class CollectionHandler {
      * provides basic information about the collection
      */
     public String info() {
-        return ("Class: " + Events.getClass().getName() + "\n" +
+        return ("Class: " + units.getClass().getName() + "\n" +
         "Initialized: " + initDate.getTime().toString() + "\n" +
-        "Capacity: " + Events.capacity() + "\n" +
-        "Size: " + Events.size());
+        "Capacity: " + units.capacity() + "\n" +
+        "Size: " + units.size());
 
     }
 
@@ -198,9 +198,9 @@ public class CollectionHandler {
      * prints all elements of the Collection to StdOut
      */
     public String contents() {
-        if (!Events.isEmpty()) {
+        if (!units.isEmpty()) {
             StringBuilder s = new StringBuilder();
-            Events.forEach((e)->{if (e.name!=null) s.append(e.name).append("\n"); });
+            units.forEach((e)->{if (e.getName()!=null) s.append(e.getName()).append("\n"); });
             return s.toString();
         } else return("Collection is empty");
     }
@@ -208,17 +208,17 @@ public class CollectionHandler {
     /**
      * adds to the collection if it's greater than the maximum element
      *
-     * @param e an Event to push
+     * @param e a Character to push
      */
-    public String addIfMax(Event e) {
+    public String addIfMax(Unit e) {
         boolean b = true;
-        for (Event event : Events) {
-            if (e.compareTo(event) < 0) {
+        for (Unit character : units) {
+            if (e.compareTo(character) < 0) {
                 b = false;
             }
         }
         if (b) {
-            Events.push(e);
+            units.push(e);
             return "Добавлено";
         } else return "Не добавено";
 
@@ -227,17 +227,17 @@ public class CollectionHandler {
     /**
      * adds e to the collection if it's less than the element
      *
-     * @param e an Event to push
+     * @param e a Character to push
      */
-    public String addIfMin(Event e) {
+    public String addIfMin(Unit e) {
         boolean b = true;
-        for (Event event : Events) {
-            if (e.compareTo(event) > 0) {
+        for (Unit character : units) {
+            if (e.compareTo(character) > 0) {
                 b = false;
             }
         }
         if (b) {
-            Events.push(e);
+            units.push(e);
             return "Добавлено";
         } else return "Не добавлено";
 
@@ -248,8 +248,8 @@ public class CollectionHandler {
      *
      * @param e
      */
-    public String add(Event e) {
-        Events.push(e);
+    public String add(Unit e) {
+        units.push(e);
         return "Element added";
     }
 
@@ -259,8 +259,8 @@ public class CollectionHandler {
      * @param i index
      * @param e element
      */
-    public String insert(int i, Event e) {
-        Events.insertElementAt(e, i);
+    public String insert(int i, Unit e) {
+        units.insertElementAt(e, i);
         return "Element inserted";
     }
 
@@ -268,7 +268,7 @@ public class CollectionHandler {
      * removes all the elements and sets the size to 0
      */
     public String clear() {
-        Events.removeAllElements();
+        units.removeAllElements();
         return "Cleared";
     }
 

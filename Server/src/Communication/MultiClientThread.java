@@ -1,7 +1,7 @@
 package Communication;
 
 import CollectionCLI.CollectionHandler;
-import Plot.Event;
+import Graphics.Unit;
 
 import java.io.*;
 import java.net.Socket;
@@ -9,72 +9,77 @@ import java.net.SocketException;
 import java.util.*;
 
 public class MultiClientThread extends Thread {
-    private Socket socket = null;
-    CollectionHandler ch;
 
-    public MultiClientThread(Socket socket, CollectionHandler ch) {
+    //private CollectionHandler ch;
+
+    private Socket socket;
+    private Stack<Unit> units;
+
+
+    MultiClientThread(Socket socket, /*CollectionHandler ch,*/ Stack<Unit> units) {
+
         super("MultiClientThread");
         this.socket = socket;
-        this.ch = ch;
+        //this.ch = ch;
+        this.units = units;
+
     }
 
 
     public void run() {
+
         try {
+
+            boolean listening = true;
+
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            String inputLine = "", outputLine;
-            Protocol protocol = new Protocol(ch);
-            outputLine = "Connected: " + socket.getInetAddress().getHostAddress() + ":" + socket.getLocalPort() + "." + socket.getPort();
+            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+
+            out.writeObject("Connected: " + socket.getInetAddress().getHostAddress() +
+                    ":" + socket.getLocalPort() +
+                    "." + socket.getPort()); //читаается в connectLocal()
             System.out.println("Client connected " + socket.getPort());
-            out.writeObject(outputLine);
-            out.flush();
-            ObjectInputStream in = new ObjectInputStream(
-                    socket.getInputStream());
-            Emoji.playGame(in, out);
+
+            Unit unit;
             do {
-                out.writeObject("Enter a command:");
-                out.flush();
+
                 try {
-                    ArrayList<String> cmd = (ArrayList<String>) in.readObject();
-                    StringBuilder s = new StringBuilder();
-                    cmd.forEach((p) -> s.append(p).append(" "));
-                    inputLine = s.toString();
-                    System.out.println(socket.getPort() + ": " + inputLine);
 
-                    if (cmd.get(0).equals("generate")) {
+                    //в первый раз прочиталось в connectLocal()
+                    out.reset();
+                    out.writeObject(units);
+                    out.flush();
+                    unit = (Unit) in.readObject();
+                    if (unit!=null)
+                    if (units.contains(unit)) {
+                        units.set(units.indexOf(unit), unit);
+                    } else units.add(unit);
 
-                        out.writeObject("generating");
-                        out.flush();
-
-                        out.writeObject(ch.Events);
-                        out.flush();
-
-                    } else {
-                        if (CollectionHandler.objComms.contains(cmd.get(0))) {
-                            outputLine = protocol.processResponse(cmd, (Event) in.readObject());
-                        } else {
-                            outputLine = protocol.processResponse(cmd, null);
-                        }
-                        out.writeObject(outputLine);
-                        out.flush();
-                    }
-                } catch (ClassNotFoundException e) {
-                    System.out.println("Class not found");
                 } catch (SocketException e) {
                     System.out.println("Somebody killed the connection. Who in the world it might be? \uD83E\uDD14" +
                             Emoji.thinking);
+                    listening = false;
+
                 } catch (NullPointerException e) {
                     System.out.println("NPE thrown");
+
+                } catch (IOException | ClassNotFoundException e) {
+                    //do nothing
                 }
-            } while (!inputLine.trim().equals("quit"));
+
+            } while (listening);
+
+
         } catch (IOException e) {
             System.out.println("Connection killed violently");
         }
+
+
         System.out.println(socket.getPort() + " disconnected.");
         try {
             socket.close();
         } catch (IOException e) {
-            System.out.println("Socket is not fine already, don't hurt it anymore.");
+            //do nothing
         }
     }
 }

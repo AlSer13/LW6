@@ -1,14 +1,12 @@
 package CollectionCLI;
 
-import Plot.Event;
+import Graphics.Unit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class Instruments {
     public static String extractFilePath(String path){
@@ -29,10 +27,10 @@ public class Instruments {
             return path;
     }
 
-    public static Event fromJson(String s) {
+    public static Unit fromJson(String s) {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
-        return gson.fromJson(s, Event.class);
+        return gson.fromJson(s, Unit.class);
     }
 
     public static String multilineJson(BufferedReader in) throws IOException{

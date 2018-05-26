@@ -1,17 +1,17 @@
 package Graphics;
 
+import Communication.AlternativeClient;
 import javafx.animation.TranslateTransition;
-import javafx.application.Application;
 import javafx.geometry.Point3D;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.effect.Reflection;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.transform.Rotate;
@@ -19,116 +19,126 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
 // DisplayShelf
-public class Carousel extends Application {
-    int chosenCharacterID;
-    String username;
+class Carousel {
+    private AlternativeClient tc;
+    private Unit unit;
+    private GameField gf;
+    private double width;
 
-    public Carousel(String username, Stage stage) throws Exception {
-        this.username = username;
+    Carousel(Stage stage, AlternativeClient tc, Unit unit) throws Exception {
+        this.unit = unit;
+        this.width = 1213;
+        this.tc = tc;
         start(stage);
     }
 
-    public static void main(String[] args) {
-        launch(args);
+    Carousel(Stage stage, AlternativeClient tc, Unit unit, GameField gf, double width) throws Exception {
+        this.unit = unit;
+        this.tc = tc;
+        this.gf = gf;
+        this.width = width;
+        start(stage);
     }
 
-    @Override
-    public void start(Stage stage) throws Exception {
+    private void start(Stage stage) throws Exception {
         String folder = "Client\\src\\Graphics\\imgs\\Faces";
+        File[] files = new File(folder).listFiles();
+        CarouselItem[] images;
 
         int[] index = {0};
 
-        Unit[] images =
-                Arrays.stream(new File(folder).listFiles())
-                        .map(file -> file.toURI().toString())
-                        .map(url -> new Unit(url, index[0]++))
-                        .toArray(Unit[]::new);
+        if (files != null) {
+            images =
+                    Arrays.stream(files)
+                            .map(file -> file.toURI().toString())
+                            .map(url -> new CarouselItem(url, index[0]++))
+                            .toArray(CarouselItem[]::new);
+        } else {
+            throw new IOException("There are no files in the folder Faces");
+        }
 
         Group group = new Group();
-        //group.setStyle("-fx-background-color:derive(darkred, 20%)");
         group.getChildren().addAll(images);
+
+        Scene scene = new Scene(group, width, 700, true);
+        scene.getStylesheets().add(Carousel.class.getResource("/Graphics/style/GameField.css").toExternalForm());
+        scene.setFill(Color.rgb(0x66, 33, 33));
+        stage.setScene(scene);
+        stage.getScene().setCamera(new PerspectiveCamera());
+        stage.setResizable(false);
+
+        HBox menu = new HBox();
+        menu.setLayoutY(0);
+        menu.setLayoutX(0);
+        menu.setPrefWidth(scene.getWidth());
+        GameField.initMenu(stage, menu);
+        group.getChildren().add(menu);
 
         Slider slider = new Slider(0, images.length - 1, 0);
         slider.setMajorTickUnit(1);
         slider.setMinorTickCount(0);
         slider.setBlockIncrement(1);
         slider.setSnapToTicks(true);
-
+        slider.translateXProperty().bind(stage.widthProperty().divide(2).subtract(slider.widthProperty().divide(2)));
+        slider.translateYProperty().bind(menu.heightProperty().divide(2).subtract(slider.heightProperty().divide(2)));
         group.getChildren().add(slider);
 
-        Scene scene = new Scene(group, 1000, 500, true);
-        scene.setFill(Color.rgb(0x66,33,33));
+        Label toChose = new Label("Press Enter to choose your hero");
+        toChose.setFont(Font.font("Garamond", 20));
+        toChose.setStyle("-fx-text-fill: aliceblue");
+        toChose.setLayoutY(slider.getLayoutY() + 50);
+        toChose.translateXProperty().bind(stage.widthProperty().divide(2).subtract(toChose.widthProperty().divide(2)));
+        group.getChildren().add(toChose);
 
-        stage.setScene(scene);
-        stage.getScene().setCamera(new PerspectiveCamera());
-        stage.setResizable(false);
-        stage.show();
+
+        //actions
+        slider.valueProperty().addListener((p, o, n) -> {
+            if (n.doubleValue() == n.intValue())
+                Stream.of(images).forEach(u -> u.update(n.intValue(), stage.getWidth(), stage.getHeight()));
+        });
+
+
+        group.addEventFilter(MouseEvent.MOUSE_CLICKED, e -> {
+            if (e.getTarget() instanceof CarouselItem)
+                slider.setValue(((CarouselItem) e.getTarget()).index);
+        });
+
 
         scene.setOnKeyPressed(e -> {
             switch (e.getCode()) {
-                case ENTER: chosenCharacterID = (int)slider.getValue()+1;
+                case ENTER:
+                    unit.assignCharacter((int) slider.getValue() + 1);
+                    unit.assignMenuIcon();
                     try {
-                        stage.close();
-                        new GameField(username, chosenCharacterID, stage);
+                        if (gf==null) {
+                            stage.close();
+                            gf = new GameField(stage, tc, unit);
+                        } else {
+                            gf.pickAgain();
+                        }
                     } catch (Exception e2) {
                         e2.printStackTrace();
                     }
             }
         });
 
-        Label toChose = new Label("Press Enter to choose your hero");
-        toChose.setFont(Font.font("Garamond", 20));
-        toChose.setStyle("-fx-text-fill: aliceblue");
-        toChose.setLayoutY(slider.getLayoutY() + 30);
-        toChose.translateXProperty().bind(stage.widthProperty().divide(2).subtract(toChose.widthProperty().divide(2)));
-        group.getChildren().add(toChose);
-
-        /*Button choose = new Button("✓");
-        choose.setOnAction(e -> {
-            chosenCharacterID = slider.getValue();
-            GameField gameField = new GameField();
-            try {
-                stage.close();
-                gameField.start(stage);
-            } catch (Exception e2) {
-                e2.printStackTrace();
-            }
-        });
-        group.getChildren().add(choose);
-        choose.toFront();
-        choose.translateXProperty().bind(stage.widthProperty().divide(2));
-        choose.translateYProperty().bind(stage.heightProperty().subtract(40));*/
-
-        slider.translateXProperty().bind(stage.widthProperty().divide(2).subtract(slider.widthProperty().divide(2)));
-        slider.setTranslateY(10);
-        slider.valueProperty().addListener((p, o, n) -> {
-            if(n.doubleValue() == n.intValue())
-                Stream.of(images).forEach(u -> {u.update(n.intValue(), stage.getWidth(), stage.getHeight());});
-        });
-
-        group.addEventFilter(MouseEvent.MOUSE_CLICKED, e -> {
-            if(e.getTarget() instanceof Unit)
-                slider.setValue(((Unit)e.getTarget()).index);
-        });
-
-        Button close = new Button("X");
-        close.setOnAction(e -> System.exit(0));
-        close.getStyleClass().clear();
-        close.setStyle("-fx-text-fill:white;-fx-font-size:15;-fx-font-weight:bold;-fx-font-family:'Comic Sans MS';");
-        group.getChildren().add(close);
-        close.translateXProperty().bind(stage.widthProperty().subtract(15));
+        ShutdownHook shutdownHook = new ShutdownHook(()->unit.removed = true);
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
 
 
+        stage.show();
         slider.setValue(4);
+
     }
 
-    private static class Unit extends ImageView {
+    private static class CarouselItem extends ImageView {
         final static Reflection reflection = new Reflection();
-        final static Point3D  rotationAxis = new Point3D(0, 60, 0);
+        final static Point3D rotationAxis = new Point3D(0, 60, 0);
 
         static {
             reflection.setFraction(0.5);
@@ -138,7 +148,7 @@ public class Carousel extends Application {
         final Rotate rotate = new Rotate(10, rotationAxis);
         final TranslateTransition transition = new TranslateTransition(Duration.millis(200), this);
 
-        public Unit(String imageUrl, int index) {
+        CarouselItem(String imageUrl, int index) {
             super(imageUrl);
             setEffect(reflection);
             setUserData(index);
@@ -146,28 +156,27 @@ public class Carousel extends Application {
             getTransforms().add(rotate);
         }
 
-        public void update(int currentIndex, double width, double height) {
+        private void update(int currentIndex, double width, double height) {
             int ef = index - currentIndex;
             double middle = width / 2 - 100;
             boolean b = ef < 0;
 
-            setTranslateY(height/2 - getImage().getHeight()/2);
-            double x,z, theta, pivot;
+            setTranslateY(height / 2 - getImage().getHeight() / 2);
+            double x, z, angle, pivot;
 
-            if(ef == 0) {
+            if (ef == 0) {
                 z = -300;
                 x = middle;
-                theta = 0;
+                angle = 0;
                 pivot = b ? 200 : 0;
-            }
-            else {
+            } else {
                 x = middle + ef * 82 + (b ? -147 : 147);
                 z = -78.588;
-                pivot = b ? 200 : 0 ;
-                theta = b ? 46 : -46;
+                pivot = b ? 200 : 0;
+                angle = b ? 50 : -50;
             }
             rotate.setPivotX(pivot);
-            rotate.setAngle(theta);
+            rotate.setAngle(angle);
 
             transition.pause();
             transition.setToX(x);
@@ -177,4 +186,21 @@ public class Carousel extends Application {
 
     }
 
+}
+
+
+class ShutdownHook extends Thread {
+    private Runnable r;
+
+    ShutdownHook(Runnable r) {
+        this.r = r;
+    }
+
+    public void run() {
+        try {
+            r.run();
+        } catch (NullPointerException e) {
+            System.out.println("No file");
+        }
+    }
 }
