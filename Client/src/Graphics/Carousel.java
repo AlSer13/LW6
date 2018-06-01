@@ -20,6 +20,8 @@ import javafx.util.Duration;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -44,10 +46,19 @@ class Carousel {
         this.width = width;
         start(stage);
     }
+    //TODO Remove по крестику
+    //TODO Реализовать невозможность выбрать одинакового персонажа
 
     private void start(Stage stage) throws Exception {
-        String folder = "Client\\src\\Graphics\\imgs\\Faces";
-        File[] files = new File(folder).listFiles();
+        String folder = "Graphics/imgs/Faces";
+        File[] files = null;
+
+        try {
+             files = new File(getClass().getClassLoader().getResource(folder).getPath()).listFiles();
+        } catch (NullPointerException e) {
+            System.err.println("No such path as " + folder);
+        }
+
         CarouselItem[] images;
 
         int[] index = {0};
@@ -127,7 +138,7 @@ class Carousel {
             }
         });
 
-        ShutdownHook shutdownHook = new ShutdownHook(()->unit.removed = true);
+        ShutdownHook shutdownHook = new ShutdownHook(()->unit.setRemoved(true));
         Runtime.getRuntime().addShutdownHook(shutdownHook);
 
 

@@ -113,15 +113,6 @@ public class Login {
         //actions
         signInBtn.setOnAction(e -> {
             userName = userTF.getText();
-            try {
-//                TODO Исправить ошибку с одновременной авторизацией
-                tc.units = (Stack<Unit>) tc.ois.readObject();
-                tc.oos.reset();
-                tc.oos.writeObject(null);
-                tc.oos.flush();
-            } catch (IOException | ClassNotFoundException e1) {
-                e1.printStackTrace();
-            }
             if (userName.length() <= 10) { //check if username is of appropriate size
                 if (tc.units.stream()
                         .filter(Objects::nonNull)
@@ -129,6 +120,7 @@ public class Login {
                     actionTarget.setText("Signing in as \n" + userName + ".");
                     unit = new Unit(userName);
                     try {
+                        tc.ois.readObject();
                         tc.units = (Stack<Unit>) tc.ois.readObject();
                         tc.oos.reset();
                         tc.oos.writeObject(unit);

@@ -1,7 +1,11 @@
 package Graphics;
 
 import Communication.AlternativeClient;
+import javafx.animation.FadeTransition;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
@@ -10,17 +14,23 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.SocketException;
 import java.util.*;
 
 public class GameField {
+//  TODO Сделать alert о занятости клетки
+//  TODO Переделать механизм синхронизации
 
     //core fields
     private Unit mainUnit;
@@ -30,10 +40,14 @@ public class GameField {
     private VBox userChart = new VBox();
     private Scene scene;
     private Stage primaryStage;
-    private Image map = new Image(new File("Client\\src\\Graphics\\imgs\\Map.png").toURI().toString());
+    private SimpleBooleanProperty paused = new SimpleBooleanProperty(false);
+    private Image map = new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/Map.png"));
     private double mapWidth = map.getWidth() / 4;
     private double mapHeight = map.getHeight() / 4;
     private ArrayList<LocationMark> starts = new ArrayList<>();
+    private Image imgPlay = new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/play.png"));
+    private Image imgPause = new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/pause.png"));
+    private AnchorPane mapPane = new AnchorPane();
 
     //fields for Unit movements
     private HashMap<Integer, LocationMark> locations = new HashMap<>();
@@ -67,7 +81,19 @@ public class GameField {
             this.limit = limit;
             this.label = new Label();
             this.getChildren().add(label);
-            this.setOnMouseClicked(s -> mainUnit.moveTo(this));
+            this.setOnMouseClicked(s -> {
+                if (!paused.get()) {
+                    if (!mainUnit.isRemoved()) {
+                        mainUnit.moveTo(this);
+                    } else {
+                        new Alert(Alert.AlertType.WARNING, "Sorry, you have been removed. Watch and cry.").showAndWait();
+                    }
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Paused");
+                    alert.setGraphic(new ImageView(imgPause));
+                    alert.showAndWait();
+                }
+            });
             this.id = id;
         }
 
@@ -90,6 +116,7 @@ public class GameField {
 
 
     static void initMenu(Stage primaryStage, HBox hbox) {
+        //TODO Make working menu items
 
         MenuBar mainMenu = new MenuBar();
         Menu file = new Menu("File");
@@ -105,9 +132,18 @@ public class GameField {
 
         Menu help = new Menu("Help");
         MenuItem visitWebsite = new MenuItem("Visit Website");
+        visitWebsite.setOnAction(event -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "https://se.ifmo.ru/");
+            alert.showAndWait();
+        });
         help.getItems().add(visitWebsite);
 
         mainMenu.getMenus().addAll(file, edit, help);
+
+        properties.setOnAction(event -> new Alert(Alert.AlertType.WARNING, "Under construction").showAndWait());
+        openFile.setOnAction(event -> new Alert(Alert.AlertType.WARNING, "Under construction").showAndWait());
+        exitApp.setOnAction(event -> new Alert(Alert.AlertType.WARNING, "Under construction").showAndWait());
+        properties.setOnAction(event -> new Alert(Alert.AlertType.WARNING, "Under construction").showAndWait());
 
 
         MenuBar leftClose = new MenuBar();
@@ -158,11 +194,27 @@ public class GameField {
 
 
         //middle map panel
-        AnchorPane mapPane = new AnchorPane();
+        mapPane = new AnchorPane();
         mapPane.setShape(new Rectangle(mapWidth, mapHeight));
         mapPane.setMinSize(mapWidth, mapHeight);
         mapPane.setMaxSize(mapWidth, mapHeight);
         mapPane.setId("map");
+
+        //playpause
+
+        ImageView playPause = new ImageView(imgPlay);
+        AnchorPane.setLeftAnchor(playPause, 0.5);
+        AnchorPane.setTopAnchor(playPause, 0.5);
+        paused.addListener(new ChangeListener<Boolean>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                if (newValue) {
+                    playPause.setImage(imgPause);
+                } else
+                    playPause.setImage(imgPlay);
+            }
+        });
+        mapPane.getChildren().add(playPause);
 
         //starts
 
@@ -301,7 +353,7 @@ public class GameField {
 
         //unit exit
 
-
+        //TODO Отображение окна одновременно с отображением карты
         new Alert(Alert.AlertType.INFORMATION, "Now you wil choose your start position.").showAndWait();
         primaryStage.show();
         service.start();
@@ -320,11 +372,19 @@ public class GameField {
                 protected Boolean call() {
                     do {
                         try {
-                            Thread.sleep(10);
+                            Thread.sleep(100);
                         } catch (InterruptedException e) {
                             //do nothing
                         }
-                        sync();
+                        if (!sync()) {
+                            removeUnit(mainUnit);
+                            mainUnit.setKicked(true);
+                            Platform.runLater(() -> {
+                                new Alert(Alert.AlertType.WARNING, "You've been kicked.").showAndWait();
+                                System.exit(0);
+                            });
+                            break;
+                        }
                         /*try {
                             Thread.sleep(10);
                         } catch (InterruptedException e) {
@@ -339,50 +399,72 @@ public class GameField {
     };
 
 
-    private void sync() {
+    private boolean sync() {
         try {
-            tc.units = (Stack<Unit>) tc.ois.readObject();
-            playerList.stream().filter(unit -> tc.units.get(tc.units.indexOf(unit)).removed && !unit.removed)
-                    .forEach(this::removeUnit);
-            tc.units.stream().filter(unit -> !unit.equals(mainUnit) && !unit.removed && unit.locId != 0)
-                    .forEach(this::addUnit);
-            tc.oos.reset();
-            tc.oos.writeObject(mainUnit);
-            tc.oos.flush();
 
-        } catch (IOException | ClassNotFoundException e) {
+            String cmd = (String) tc.ois.readObject();
+            tc.units = (Stack<Unit>) tc.ois.readObject();
+            if (cmd != null)
+                processCmd(cmd);
+            if (tc.units.contains(mainUnit)) {
+                playerList.stream().filter(unit -> (!tc.units.contains(unit) || (tc.units.get(tc.units.indexOf(unit)).isRemoved() && !unit.isRemoved())))
+                        .forEach(this::removeUnit);
+                tc.units.stream().filter(unit -> !unit.equals(mainUnit) && !unit.isRemoved() && unit.getLocId() != 0)
+                        .forEach(this::addUnit);
+                tc.oos.reset();
+                tc.oos.writeObject(mainUnit);
+                tc.oos.flush();
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (EOFException e) {
+            return false;
+        } catch (SocketException e) {
+            Platform.runLater(() -> {
+                new Alert(Alert.AlertType.ERROR, "Server unavailable.").showAndWait();
+                System.exit(1);
+            });
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
             //do nothing (кидает исключение когда прилетает строка)
         }
-
+        return true;
     }
 
 
     private void addUnit(Unit unit) {
-        if (unit.currentLocation == null) unit.restore(locations);
+        if (unit.currentLocation == null) unit.restore();
         if (!playerList.contains(unit)) {
             //int limit = 8;
             //if (tc.units.size() < limit) {
             playerList.add(unit);
-            unit.moveTo(locations.get(unit.locId));
+            unit.moveTo(locations.get(unit.getLocId()));
             addToChart(unit);
             // }
-        } else playerList.get(playerList.indexOf(unit)).moveTo(locations.get(unit.locId));
+        } else playerList.get(playerList.indexOf(unit)).moveTo(locations.get(unit.getLocId()));
     }
 
 
     private void removeUnit(Unit unit) {
-//        TODO Сделать удаление юнита с других клиентов
+        //TODO исправить ошибку с id локации
         Platform.runLater(() -> userChart.getChildren().remove(unit.menuIcon));
-        unit.removed = true;
-        try {
-            tc.oos.reset();
-            tc.oos.writeObject(unit);
-            tc.oos.flush();
-        } catch (IOException e) {
-            //do nothing
-        }
+        unit.setLocId(0);
+        unit.setCharId(0);
+        unit.setRemoved(true);
+        if (!unit.isKicked())
+            try {
+                tc.oos.reset();
+                tc.oos.writeObject(unit);
+                tc.oos.flush();
+            } catch (IOException e) {
+                //do nothing
+            }
         unit.leave();
-        System.out.println(unit.getName() + "removed.");
+        System.out.println(unit.getName() + " removed.");
     }
 
 
@@ -394,6 +476,31 @@ public class GameField {
     void pickAgain() {
 //        TODO Испраить ошибку с иконкой в меню
         primaryStage.setScene(scene);
+    }
+
+    void processCmd(String s) {
+        switch (s) {
+            case "pause": {
+                paused.set(true);
+            }
+            break;
+            case "play":
+                paused.set(false);
+                break;
+            case "move":
+                mainUnit.moveTo(locations.get(tc.units.get(tc.units.indexOf(mainUnit)).getLocId()));
+                break;
+
+            case "remove":
+                System.out.println("Received remove command.");
+                removeUnit(mainUnit);
+                break;
+
+            case "load":
+                mainUnit.moveTo(locations.get(tc.units.get(tc.units.indexOf(mainUnit)).getLocId()));
+                mainUnit.assignCharacter(tc.units.get(tc.units.indexOf(mainUnit)).getCharId());
+                break;
+        }
     }
 
 }

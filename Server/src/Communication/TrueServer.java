@@ -1,25 +1,45 @@
 package Communication;
 
 import CollectionCLI.CollectionHandler;
+import GUI.ServerRoom;
 import Graphics.Unit;
+import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.concurrent.Service;
+import javafx.concurrent.Task;
+import javafx.stage.Stage;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 import java.util.Stack;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class TrueServer {
+public class TrueServer extends Application {
+
+    private volatile ObservableList<Unit> unitsOL = FXCollections.observableArrayList();
+    private Stack<Unit> units = new Stack<>();
+    private HashMap<String, MultiClientThread> clientMap = new HashMap<>();
+    private boolean paused;
+
     public static void main(String[] args) throws IOException {
-        Stack<Unit> units = new Stack<>();
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) throws Exception {
         int port = 0;
+        File file = new File("SaveFile");
+
         CollectionHandler ch = new CollectionHandler();
-        ShutdownHook shutdownHook = new ShutdownHook(ch);
-        Runtime.getRuntime().addShutdownHook(shutdownHook);
+        /*ShutdownHook shutdownHook = new ShutdownHook(ch);
+        Runtime.getRuntime().addShutdownHook(shutdownHook);*/
 
-
-        //server
-        boolean listening = true;
+        //wait for port
         Scanner scan = new Scanner(System.in);
         do {
             System.out.println("Enter port:");
@@ -31,20 +51,48 @@ public class TrueServer {
                 System.out.println("Should be integer");
                 scan.next();
             }
-        } while (port==0);
-        try (
-                ServerSocket serverSocket = new ServerSocket(port)
-        ) {
-            while (listening) {
-                new MultiClientThread(serverSocket.accept(), /*ch,*/ units).start();
+        } while (port == 0);
+
+        int ports[] = {port};
+
+
+        //receive Clients
+
+        Service<Boolean> receiveClients = new Service<Boolean>() {
+
+            @Override
+            protected Task<Boolean> createTask() {
+                return new Task<Boolean>() {
+                    boolean listening = true;
+
+                    @Override
+                    protected Boolean call() {
+                        try (ServerSocket serverSocket = new ServerSocket(ports[0])) {
+                            while (listening) {
+                                try {
+                                    new MultiClientThread(serverSocket.accept(), /*ch,*/ units, unitsOL, clientMap, paused).start();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        } catch (IOException e) {
+                            System.err.println("Could not listen on port " + ports[0]);
+                        }
+                        System.out.println("Disconnected");
+                        return true;
+                    }
+                };
             }
-            System.out.println("Disconnected");
-        } catch (IOException e) {
-            System.err.println("Could not listen on port " + port);
-        }
+        };
+
+        receiveClients.start();
+        new ServerRoom(primaryStage, unitsOL, file, clientMap);
+
+
     }
 }
-class ShutdownHook extends Thread {
+
+/*class ShutdownHook extends Thread {
     private CollectionHandler ch;
 
     ShutdownHook(CollectionHandler inch) {
@@ -58,7 +106,7 @@ class ShutdownHook extends Thread {
             System.out.println("No file");
         }
     }
-}
+}*/
 
 
 

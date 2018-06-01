@@ -45,6 +45,15 @@ public class AlternativeClient extends Application {
     private int i; //Connection attempts
 
     public void start(Stage primaryStage) {
+        File file = new File("err.txt");
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        PrintStream ps = new PrintStream(fos);
+        System.setErr(ps);
 
         localPort = readPort();
         Login login = new Login(this, primaryStage);
@@ -62,6 +71,7 @@ public class AlternativeClient extends Application {
             System.out.println((String) ois.readObject());
 
             //пишется из первой строки цикла в MultiClientThread
+            ois.readObject();
             units = (Stack<Unit>) ois.readObject();
             oos.reset();
             oos.writeObject(null);
@@ -69,8 +79,6 @@ public class AlternativeClient extends Application {
 
 
         } catch (IOException | ClassNotFoundException e) {
-
-            e.printStackTrace();
 
             try {
 

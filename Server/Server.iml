@@ -9,5 +9,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="com.google.code.gson:gson:2.8.2" level="project" />
     <orderEntry type="module" module-name="Client" exported="" />
+    <orderEntry type="library" name="org.postgresql:postgresql:9.4-1206-jdbc42" level="project" />
   </component>
 </module>
