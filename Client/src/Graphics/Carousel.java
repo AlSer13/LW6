@@ -1,6 +1,7 @@
 package Graphics;
 
 import Communication.AlternativeClient;
+import GameFieldItems.Unit;
 import javafx.animation.TranslateTransition;
 import javafx.geometry.Point3D;
 import javafx.scene.Group;
@@ -20,8 +21,6 @@ import javafx.util.Duration;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -50,7 +49,7 @@ class Carousel {
     //TODO Реализовать невозможность выбрать одинакового персонажа
 
     private void start(Stage stage) throws Exception {
-        String folder = "Graphics/imgs/Faces";
+        String folder = "imgs/Faces";
         File[] files = null;
 
         try {
@@ -77,7 +76,7 @@ class Carousel {
         group.getChildren().addAll(images);
 
         Scene scene = new Scene(group, width, 700, true);
-        scene.getStylesheets().add(Carousel.class.getResource("/Graphics/style/GameField.css").toExternalForm());
+        scene.getStylesheets().add(Carousel.class.getResource("/style/GameField.css").toExternalForm());
         scene.setFill(Color.rgb(0x66, 33, 33));
         stage.setScene(scene);
         stage.getScene().setCamera(new PerspectiveCamera());

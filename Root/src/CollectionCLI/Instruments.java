@@ -1,6 +1,6 @@
 package CollectionCLI;
 
-import Graphics.Unit;
+import GameFieldItems.Unit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

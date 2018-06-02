@@ -1,6 +1,7 @@
 package Graphics;
 
 import Communication.AlternativeClient;
+import GameFieldItems.Unit;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -64,7 +65,7 @@ public class Login {
         Scene scene = new Scene(grid, 350, 220);
         primaryStage.setScene(scene);
         scene.getStylesheets().add
-                (Login.class.getResource("/Graphics/style/Login.css").toExternalForm());
+                (Login.class.getResource("/style/Login.css").toExternalForm());
 
 
         //make "Welcome" title
@@ -125,9 +126,7 @@ public class Login {
                         tc.oos.reset();
                         tc.oos.writeObject(unit);
                         tc.oos.flush();
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    } catch (ClassNotFoundException e1) {
+                    } catch (IOException | ClassNotFoundException e1) {
                         e1.printStackTrace();
                     }
 

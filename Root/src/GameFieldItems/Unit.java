@@ -1,4 +1,4 @@
-package Graphics;
+package GameFieldItems;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -18,10 +18,10 @@ import java.util.Arrays;
 
 public class Unit extends ImageView implements Comparable<Unit>, Serializable {
     private transient ImageView icon;
-    transient GridPane menuIcon;
+    public transient GridPane menuIcon;
     private String username;
     private boolean kicked;
-    transient GameField.LocationMark currentLocation;
+    public transient LocationMark currentLocation;
     private int locIdVal;
     private int charIdVal;
     transient private MyIntProperty locId = new MyIntProperty(0);
@@ -67,13 +67,13 @@ public class Unit extends ImageView implements Comparable<Unit>, Serializable {
         assignMenuIcon();
     }
 
-    Unit(String username) {
+    public Unit(String username) {
         this.username = username;
     }
 
-    void assignCharacter(int charId) {
+    public void assignCharacter(int charId) {
         setCharId(charId);
-        this.setImage(new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/Faces/Faces-0" + charId + ".png")));
+        this.setImage(new Image(getClass().getClassLoader().getResourceAsStream("imgs/Faces/Faces-0" + charId + ".png")));
         if (this.icon!=null) {
             this.icon.setImage(this.getImage());
         }
@@ -81,7 +81,7 @@ public class Unit extends ImageView implements Comparable<Unit>, Serializable {
         this.setFitWidth(this.getImage().getWidth() / 5);
     }
 
-    void assignMenuIcon() {
+    public void assignMenuIcon() {
         if (this.getImage() != null) {
             this.icon = new ImageView();
             icon.setImage(this.getImage());
@@ -102,10 +102,10 @@ public class Unit extends ImageView implements Comparable<Unit>, Serializable {
         } else System.out.println("No image assigned to " + username);
     }
 
-    void restore() {
+    public void restore() {
         this.setLocId(locIdVal);
         this.setCharId(charIdVal);
-        this.setImage(new Image(new File("Graphics.imgs.Faces\\Graphics.imgs.Faces-0" + getCharId() + ".png").toURI().toString()));
+        this.setImage(new Image(getClass().getClassLoader().getResourceAsStream("imgs/Faces/Faces-0" + getCharId() + ".png")));
         this.icon = new ImageView();
         icon.setImage(this.getImage());
         icon.setFitHeight(this.getImage().getHeight() / 2);
@@ -128,7 +128,7 @@ public class Unit extends ImageView implements Comparable<Unit>, Serializable {
 
     }
 
-    boolean moveTo(GameField.LocationMark location) throws NullPointerException {
+    public boolean moveTo(LocationMark location) throws NullPointerException {
         if (location.charPool.size() < location.limit) {
             if (!location.equals(currentLocation)) {
                 this.leave();
@@ -142,11 +142,11 @@ public class Unit extends ImageView implements Comparable<Unit>, Serializable {
         return false;
     }
 
-    void leave() {
+    public void leave() {
         if (currentLocation != null) {
             if (currentLocation.charPool.contains(this)) {
                 currentLocation.charPool.remove(this);
-                GameField.LocationMark locationMark = currentLocation;
+                LocationMark locationMark = currentLocation;
                 Platform.runLater(() -> locationMark.getChildren().remove(this));
                 currentLocation = null;
                 setLocId(0);

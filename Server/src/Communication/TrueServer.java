@@ -1,8 +1,7 @@
 package Communication;
 
-import CollectionCLI.CollectionHandler;
-import GUI.ServerRoom;
-import Graphics.Unit;
+import GameFieldItems.Unit;
+import Graphics.ServerRoom;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -17,7 +16,6 @@ import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 import java.util.Stack;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class TrueServer extends Application {
 
@@ -34,10 +32,6 @@ public class TrueServer extends Application {
     public void start(Stage primaryStage) throws Exception {
         int port = 0;
         File file = new File("SaveFile");
-
-        CollectionHandler ch = new CollectionHandler();
-        /*ShutdownHook shutdownHook = new ShutdownHook(ch);
-        Runtime.getRuntime().addShutdownHook(shutdownHook);*/
 
         //wait for port
         Scanner scan = new Scanner(System.in);

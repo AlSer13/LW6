@@ -1,6 +1,7 @@
 package Communication;
 
-import Graphics.Unit;
+
+import GameFieldItems.Unit;
 import javafx.collections.ObservableList;
 
 import java.io.IOException;
@@ -13,15 +14,13 @@ import java.util.Stack;
 
 public class MultiClientThread extends Thread {
 
-    //private CollectionHandler ch;
-
     private Socket socket;
     private Stack<Unit> units = new Stack<>();
     private volatile ObservableList<Unit> unitsOL;
-    String cmd;
-    int arg;
-    boolean paused;
-    HashMap<String, MultiClientThread> clientMap;
+    private String cmd;
+    private int arg;
+    private boolean paused;
+    private HashMap<String, MultiClientThread> clientMap;
 
 
     MultiClientThread(Socket socket, /*CollectionHandler ch,*/ Stack<Unit> units, ObservableList<Unit> unitsOL, HashMap<String, MultiClientThread> clientMap, boolean paused) {
@@ -125,8 +124,7 @@ public class MultiClientThread extends Thread {
 
 
                 } catch (SocketException e) {
-                    System.out.println("Somebody has killed the connection. Who in the world it could have been? \uD83E\uDD14" +
-                            Emoji.thinking);
+                    System.out.println("Somebody has killed the connection. Who in the world it could have been? \uD83E\uDD14");
                     listening = false;
 
                 } catch (NullPointerException e) {

@@ -1,8 +1,7 @@
 package Communication;
 
-import Graphics.GameField;
+import GameFieldItems.Unit;
 import Graphics.Login;
-import Graphics.Unit;
 import javafx.application.Application;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;

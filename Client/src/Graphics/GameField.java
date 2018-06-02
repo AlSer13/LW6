@@ -1,7 +1,8 @@
 package Graphics;
 
 import Communication.AlternativeClient;
-import javafx.animation.FadeTransition;
+import GameFieldItems.LocationMark;
+import GameFieldItems.Unit;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -19,16 +20,13 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
 import java.io.EOFException;
-import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.SocketException;
 import java.util.*;
 
-public class GameField {
+class GameField {
 //  TODO Сделать alert о занятости клетки
 //  TODO Переделать механизм синхронизации
 
@@ -41,12 +39,12 @@ public class GameField {
     private Scene scene;
     private Stage primaryStage;
     private SimpleBooleanProperty paused = new SimpleBooleanProperty(false);
-    private Image map = new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/Map.png"));
+    private Image map = new Image(getClass().getClassLoader().getResourceAsStream("imgs/Map.png"));
     private double mapWidth = map.getWidth() / 4;
     private double mapHeight = map.getHeight() / 4;
     private ArrayList<LocationMark> starts = new ArrayList<>();
-    private Image imgPlay = new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/play.png"));
-    private Image imgPause = new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/pause.png"));
+    private Image imgPlay = new Image(getClass().getClassLoader().getResourceAsStream("imgs/play.png"));
+    private Image imgPause = new Image(getClass().getClassLoader().getResourceAsStream("imgs/pause.png"));
     private AnchorPane mapPane = new AnchorPane();
 
     //fields for Unit movements
@@ -67,52 +65,6 @@ public class GameField {
 
 
     //layout management
-
-    class LocationMark extends TilePane implements Serializable {
-        int id;
-        private String name;
-        int limit;
-        Label label;
-        HashSet<Unit> charPool = new HashSet<>();
-
-        LocationMark(int limit, int id) {
-            this.setPrefSize(140, 110);
-            this.getStyleClass().add("location-mark");
-            this.limit = limit;
-            this.label = new Label();
-            this.getChildren().add(label);
-            this.setOnMouseClicked(s -> {
-                if (!paused.get()) {
-                    if (!mainUnit.isRemoved()) {
-                        mainUnit.moveTo(this);
-                    } else {
-                        new Alert(Alert.AlertType.WARNING, "Sorry, you have been removed. Watch and cry.").showAndWait();
-                    }
-                } else {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, "Paused");
-                    alert.setGraphic(new ImageView(imgPause));
-                    alert.showAndWait();
-                }
-            });
-            this.id = id;
-        }
-
-        LocationMark(double X, double Y, int limit, String name, int id) {
-            this(limit, id);
-            this.setLayoutX(X);
-            this.setLayoutY(Y);
-            this.name = name;
-            setLabel();
-        }
-
-        void setLabel() {
-            if (name == null || name.equals(""))
-                name = "Unnamed area";
-            this.label.setText(name);
-            this.setAlignment(Pos.TOP_CENTER);
-        }
-
-    }
 
 
     static void initMenu(Stage primaryStage, HBox hbox) {
@@ -187,7 +139,7 @@ public class GameField {
         BorderPane pane = new BorderPane();
 
         scene = new Scene(pane/*, mapWidth+300, mapHeight+150*/);
-        scene.getStylesheets().add(GameField.class.getResource("/Graphics/style/GameField.css").toExternalForm());
+        scene.getStylesheets().add(GameField.class.getResource("/style/GameField.css").toExternalForm());
 
         primaryStage.setResizable(true);
         primaryStage.setScene(scene);
@@ -205,14 +157,11 @@ public class GameField {
         ImageView playPause = new ImageView(imgPlay);
         AnchorPane.setLeftAnchor(playPause, 0.5);
         AnchorPane.setTopAnchor(playPause, 0.5);
-        paused.addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-                if (newValue) {
-                    playPause.setImage(imgPause);
-                } else
-                    playPause.setImage(imgPlay);
-            }
+        paused.addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                playPause.setImage(imgPause);
+            } else
+                playPause.setImage(imgPlay);
         });
         mapPane.getChildren().add(playPause);
 
@@ -270,6 +219,19 @@ public class GameField {
         locations.put(BStart3.id, BStart3);
         locations.put(LStart4.id, LStart4);
         locations.put(BStart4.id, BStart4);
+        locations.forEach((k,v) -> v.setOnMouseClicked(s -> {
+            if (!paused.get()) {
+                if (!mainUnit.isRemoved()) {
+                    mainUnit.moveTo(v);
+                } else {
+                    new Alert(Alert.AlertType.WARNING, "Sorry, you have been removed. Watch and cry.").showAndWait();
+                }
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Paused");
+                alert.setGraphic(new ImageView(imgPause));
+                alert.showAndWait();
+            }
+        }));
 
         mapPane.getChildren().addAll(desert, beach, island, bTree, away, christopherHome, forest);
         mapPane.getChildren().add(leftStart);
@@ -465,6 +427,7 @@ public class GameField {
             }
         unit.leave();
         System.out.println(unit.getName() + " removed.");
+        System.out.close();
     }
 
 
@@ -478,7 +441,7 @@ public class GameField {
         primaryStage.setScene(scene);
     }
 
-    void processCmd(String s) {
+    private void processCmd(String s) {
         switch (s) {
             case "pause": {
                 paused.set(true);

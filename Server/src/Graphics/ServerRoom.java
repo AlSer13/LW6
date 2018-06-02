@@ -1,7 +1,7 @@
-package GUI;
+package Graphics;
 
 import Communication.MultiClientThread;
-import Graphics.Unit;
+import GameFieldItems.Unit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -34,7 +34,7 @@ public class ServerRoom extends Application {
     //все взаимодействие с ServerRoom происходит через unitsOL
 
     private File saveFile;
-    HashMap<String, MultiClientThread> clientMap;
+    private HashMap<String, MultiClientThread> clientMap;
 
     private ObservableList<Unit> unitsOL;
     private ObservableList<String> users = FXCollections.observableArrayList();
@@ -101,8 +101,8 @@ public class ServerRoom extends Application {
         // HBox playPause = new HBox();
         //playPause.setSpacing(10);
         //playPause.setPadding(new Insets(20));
-        ImageView imgPlay = new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/play.png")));
-        ImageView imgPause = new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/pause.png")));
+        ImageView imgPlay = new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("imgs/play.png")));
+        ImageView imgPause = new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("imgs/pause.png")));
         Button playPause = new Button();
         playPause.setGraphic(imgPause);
 
@@ -187,7 +187,7 @@ public class ServerRoom extends Application {
                     clientMap.get(selected.getName()).sendCmd("remove");
                 else {
                     Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setGraphic(new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("Graphics/imgs/widmnd.jpg"))));
+                    alert.setGraphic(new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("imgs/widmnd.jpg"))));
                     alert.showAndWait();
                 }
             }
@@ -227,9 +227,7 @@ public class ServerRoom extends Application {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            clientMap.forEach((s,t) -> {
-                t.sendCmd("load");
-            });
+            clientMap.forEach((s,t) -> t.sendCmd("load"));
 
         });
 
@@ -262,9 +260,7 @@ public class ServerRoom extends Application {
 
         });
 
-        terminate.setOnAction(event -> {
-            System.exit(0);
-        });
+        terminate.setOnAction(event -> System.exit(0));
 
 
         primaryStage.show();
